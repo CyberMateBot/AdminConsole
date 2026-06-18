@@ -19,9 +19,30 @@ const MIME = {
   '.txt': 'text/plain; charset=utf-8',
 }
 
+function apiBaseUrl() {
+  return (process.env.API_BASE_URL || process.env.VITE_API_BASE_URL || '').replace(/\/$/, '')
+}
+
 createServer(async (req, res) => {
   try {
     const url = new URL(req.url ?? '/', `http://${req.headers.host}`)
+
+    if (url.pathname === '/config.js') {
+      const base = apiBaseUrl()
+      res.writeHead(200, { 'Content-Type': 'application/javascript; charset=utf-8' })
+      res.end(`window.__APP_CONFIG__={apiBaseUrl:${JSON.stringify(base)}}`)
+      return
+    }
+
+    if (url.pathname.startsWith('/api/')) {
+      res.writeHead(502, { 'Content-Type': 'application/json; charset=utf-8' })
+      res.end(JSON.stringify({
+        error: 'API_BASE_URL is not configured on Admin Panel service',
+        hint: 'Set API_BASE_URL=https://your-backend.up.railway.app in Railway variables',
+      }))
+      return
+    }
+
     let file = decodeURIComponent(url.pathname)
     if (file === '/') file = '/index.html'
 
@@ -40,4 +61,12 @@ createServer(async (req, res) => {
   } catch {
     res.writeHead(500).end('Internal Server Error')
   }
-}).listen(PORT, () => console.log(`Listening on ${PORT}`))
+}).listen(PORT, () => {
+  const base = apiBaseUrl()
+  console.log(`Listening on ${PORT}`)
+  if (base) {
+    console.log(`API proxy target: ${base}/api`)
+  } else {
+    console.warn('WARNING: API_BASE_URL is empty — admin panel cannot reach backend')
+  }
+})

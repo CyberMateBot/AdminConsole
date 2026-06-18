@@ -3,6 +3,8 @@ buildCommand = "npm install --include=dev && npm run build"
 
 [deploy]
 startCommand = "node scripts/server.mjs"
+# Runtime (Variables, not only Build):
+# API_BASE_URL=https://appback-production-6c0e.up.railway.app
 healthcheckPath = "/"
 healthcheckTimeout = 300
 restartPolicyType = "ON_FAILURE"

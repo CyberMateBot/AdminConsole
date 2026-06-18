@@ -1,8 +1,15 @@
 import axios from 'axios'
 
-const BASE_URL = import.meta.env.VITE_API_BASE_URL
-  ? `${import.meta.env.VITE_API_BASE_URL}/api`
-  : '/api'
+function resolveApiBaseUrl() {
+  const runtime = window.__APP_CONFIG__?.apiBaseUrl?.trim?.()
+  if (runtime) return runtime.replace(/\/$/, '')
+  const buildTime = import.meta.env.VITE_API_BASE_URL?.trim?.()
+  if (buildTime) return buildTime.replace(/\/$/, '')
+  return ''
+}
+
+const apiBase = resolveApiBaseUrl()
+const BASE_URL = apiBase ? `${apiBase}/api` : '/api'
 
 export const apiClient = axios.create({
   baseURL: BASE_URL,
