@@ -23,6 +23,25 @@ function apiBaseUrl() {
   return (process.env.API_BASE_URL || process.env.VITE_API_BASE_URL || '').replace(/\/$/, '')
 }
 
+function injectConfig(html) {
+  const base = apiBaseUrl()
+  const tag = `<script>window.__APP_CONFIG__={apiBaseUrl:${JSON.stringify(base)}}</script>`
+  if (html.includes('__APP_CONFIG__')) {
+    return html.replace(
+      /<script>window\.__APP_CONFIG__[^<]*<\/script>/,
+      tag,
+    )
+  }
+  return html.replace('<head>', `<head>\n    ${tag}`)
+}
+
+async function serveIndex(res) {
+  let html = await readFile(join(ROOT, 'index.html'), 'utf8')
+  html = injectConfig(html)
+  res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' })
+  res.end(html)
+}
+
 createServer(async (req, res) => {
   try {
     const url = new URL(req.url ?? '/', `http://${req.headers.host}`)
@@ -44,7 +63,10 @@ createServer(async (req, res) => {
     }
 
     let file = decodeURIComponent(url.pathname)
-    if (file === '/') file = '/index.html'
+    if (file === '/') {
+      await serveIndex(res)
+      return
+    }
 
     let filePath = join(ROOT, file)
     let data
@@ -52,8 +74,13 @@ createServer(async (req, res) => {
     try {
       data = await readFile(filePath)
     } catch {
-      data = await readFile(join(ROOT, 'index.html'))
-      file = '/index.html'
+      await serveIndex(res)
+      return
+    }
+
+    if (file === '/index.html') {
+      await serveIndex(res)
+      return
     }
 
     res.writeHead(200, { 'Content-Type': MIME[extname(file)] ?? 'application/octet-stream' })

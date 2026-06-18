@@ -25,7 +25,7 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-base-200">
+    <div className="min-h-screen flex items-center justify-center bg-gray-100">
       <div className="card bg-base-100 shadow w-full max-w-sm">
         <div className="card-body">
           <h2 className="card-title text-base">Вход в Admin Panel</h2>
