@@ -16,13 +16,16 @@ function readStoredAdmin() {
 
 export function AuthProvider({ children }) {
   const [admin, setAdmin] = useState(readStoredAdmin)
-  const isAuthenticated = !!localStorage.getItem('admin_token')
+  const [isAuthenticated, setIsAuthenticated] = useState(
+    () => !!localStorage.getItem('admin_token'),
+  )
 
   const login = useCallback(async (email, password) => {
     const { token, admin: nextAdmin } = await authApi.login(email, password)
     localStorage.setItem('admin_token', token)
     localStorage.setItem('admin_user', JSON.stringify(nextAdmin))
     setAdmin(nextAdmin)
+    setIsAuthenticated(true)
   }, [])
 
   const logout = useCallback(async () => {
@@ -30,6 +33,7 @@ export function AuthProvider({ children }) {
     localStorage.removeItem('admin_token')
     localStorage.removeItem('admin_user')
     setAdmin(null)
+    setIsAuthenticated(false)
     window.location.href = '/login'
   }, [])
 

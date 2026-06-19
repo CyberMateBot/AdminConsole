@@ -19,7 +19,7 @@ function StatCard({ label, value, icon: Icon }) {
 }
 
 export default function DashboardPage() {
-  const { data, isLoading } = useQuery({
+  const { data, isLoading, isError } = useQuery({
     queryKey: ['stats'],
     queryFn: statsApi.get,
   })
@@ -35,6 +35,14 @@ export default function DashboardPage() {
             </div>
           </div>
         ))}
+      </div>
+    )
+  }
+
+  if (isError) {
+    return (
+      <div className="alert alert-error text-sm max-w-lg">
+        Не удалось загрузить статистику. Проверьте соединение с бэкендом.
       </div>
     )
   }

@@ -8,16 +8,18 @@ function resolveApiBaseUrl() {
   return ''
 }
 
-const apiBase = resolveApiBaseUrl()
-const BASE_URL = apiBase ? `${apiBase}/api` : '/api'
+function getApiBaseUrl() {
+  const apiBase = resolveApiBaseUrl()
+  return apiBase ? `${apiBase}/api` : '/api'
+}
 
 export const apiClient = axios.create({
-  baseURL: BASE_URL,
   headers: { 'Content-Type': 'application/json' },
   timeout: 15_000,
 })
 
 apiClient.interceptors.request.use((config) => {
+  config.baseURL = getApiBaseUrl()
   const token = localStorage.getItem('admin_token')
   if (token) config.headers.Authorization = `Bearer ${token}`
   return config

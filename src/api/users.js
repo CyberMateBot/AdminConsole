@@ -10,5 +10,11 @@ export const usersApi = {
   toggleActive: (id, is_active) =>
     apiClient.patch(`/admin/users/${id}`, { is_active }).then(r => r.data),
 
+  creditTokens: (id, { amount, reason }) =>
+    apiClient.post(`/admin/users/${id}/tokens/credit`, { amount, reason }).then(r => r.data),
+
+  debitTokens: (id, { amount, reason }) =>
+    apiClient.post(`/admin/users/${id}/tokens/debit`, { amount, reason }).then(r => r.data),
+
   delete: (id) => apiClient.delete(`/admin/users/${id}`),
 }

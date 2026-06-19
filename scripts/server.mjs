@@ -26,13 +26,22 @@ function apiBaseUrl() {
 function injectConfig(html) {
   const base = apiBaseUrl()
   const tag = `<script>window.__APP_CONFIG__={apiBaseUrl:${JSON.stringify(base)}}</script>`
-  if (html.includes('__APP_CONFIG__')) {
-    return html.replace(
+  const withoutConfigScript = html.replace(/\s*<script[^>]*src=["']\/config\.js["'][^>]*><\/script>/i, '')
+  if (withoutConfigScript.includes('__APP_CONFIG__')) {
+    return withoutConfigScript.replace(
       /<script>window\.__APP_CONFIG__[^<]*<\/script>/,
       tag,
     )
   }
-  return html.replace('<head>', `<head>\n    ${tag}`)
+  return withoutConfigScript.replace('<head>', `<head>\n    ${tag}`)
+}
+
+function safeFilePath(pathname) {
+  const relative = pathname.replace(/^\/+/, '')
+  const filePath = join(ROOT, relative)
+  const normalizedRoot = join(ROOT)
+  if (!filePath.startsWith(normalizedRoot)) return null
+  return filePath
 }
 
 async function serveIndex(res) {
@@ -68,7 +77,12 @@ createServer(async (req, res) => {
       return
     }
 
-    let filePath = join(ROOT, file)
+    const filePath = safeFilePath(file)
+    if (!filePath) {
+      res.writeHead(403).end('Forbidden')
+      return
+    }
+
     let data
 
     try {

@@ -13,6 +13,7 @@ export default function BroadcastPage() {
       setResult(data)
       setMessage('')
     },
+    onError: () => setResult(null),
   })
 
   return (
