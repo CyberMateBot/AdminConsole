@@ -9,7 +9,7 @@ const titles = {
   '/broadcast': 'Рассылки',
   '/transactions': 'Транзакции',
   '/models': 'Нейросети',
-  '/home-widgets': 'Главная',
+  '/home-widgets': 'Виджеты',
   '/settings': 'Настройки',
 }
 

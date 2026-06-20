@@ -28,7 +28,7 @@ function Toggle({ on, onToggle, disabled }) {
   )
 }
 
-function WidgetForm({ initial, submitLabel, onSubmit, onCancel, saving }) {
+function WidgetForm({ title, initial, submitLabel, onSubmit, onCancel, saving }) {
   const [form, setForm] = useState(initial)
 
   const setField = (key, value) => {
@@ -36,111 +36,129 @@ function WidgetForm({ initial, submitLabel, onSubmit, onCancel, saving }) {
   }
 
   return (
-    <form
-      className="page-section"
-      onSubmit={(event) => {
-        event.preventDefault()
-        onSubmit({
-          ...form,
-          sort_order: Number(form.sort_order) || 0,
-        })
-      }}
-    >
-      <div className="settings-grid">
-        <label className="settings-field">
-          <span className="settings-label">Порядок</span>
+    <div className="page-section">
+      <h2 className="section-title">{title}</h2>
+      <form
+        className="widget-form"
+        onSubmit={(event) => {
+          event.preventDefault()
+          onSubmit({
+            ...form,
+            sort_order: Number(form.sort_order) || 0,
+          })
+        }}
+      >
+        <div className="widget-form__grid">
+          <div className="field-group">
+            <label className="field-label" htmlFor="widget-sort">Порядок</label>
+            <input
+              id="widget-sort"
+              type="number"
+              className="admin-input"
+              value={form.sort_order}
+              onChange={(e) => setField('sort_order', e.target.value)}
+            />
+          </div>
+          <div className="field-group">
+            <label className="field-label" htmlFor="widget-tag">Тег</label>
+            <input
+              id="widget-tag"
+              className="admin-input"
+              placeholder="NEW"
+              value={form.tag_text}
+              onChange={(e) => setField('tag_text', e.target.value)}
+            />
+          </div>
+          <div className="field-group">
+            <label className="field-label" htmlFor="widget-tag-bg">Цвет тега (фон)</label>
+            <input
+              id="widget-tag-bg"
+              className="admin-input"
+              value={form.tag_bg}
+              onChange={(e) => setField('tag_bg', e.target.value)}
+            />
+          </div>
+          <div className="field-group">
+            <label className="field-label" htmlFor="widget-tag-color">Цвет текста тега</label>
+            <input
+              id="widget-tag-color"
+              className="admin-input"
+              value={form.tag_color}
+              onChange={(e) => setField('tag_color', e.target.value)}
+            />
+          </div>
+        </div>
+
+        <div className="field-group">
+          <label className="field-label" htmlFor="widget-title">Заголовок</label>
           <input
-            type="number"
+            id="widget-title"
             className="admin-input"
-            value={form.sort_order}
-            onChange={(e) => setField('sort_order', e.target.value)}
+            required
+            value={form.title}
+            onChange={(e) => setField('title', e.target.value)}
           />
-        </label>
-        <label className="settings-field">
-          <span className="settings-label">Тег</span>
+        </div>
+
+        <div className="field-group">
+          <label className="field-label" htmlFor="widget-desc">Описание</label>
+          <textarea
+            id="widget-desc"
+            className="admin-textarea"
+            rows={3}
+            value={form.description}
+            onChange={(e) => setField('description', e.target.value)}
+          />
+        </div>
+
+        <div className="field-group">
+          <label className="field-label" htmlFor="widget-image">URL фото</label>
           <input
+            id="widget-image"
             className="admin-input"
-            value={form.tag_text}
-            onChange={(e) => setField('tag_text', e.target.value)}
+            placeholder="https://..."
+            value={form.image_url}
+            onChange={(e) => setField('image_url', e.target.value)}
           />
-        </label>
-        <label className="settings-field">
-          <span className="settings-label">Цвет тега (фон)</span>
+          <p className="field-hint">Если указан URL — фото используется вместо градиента</p>
+        </div>
+
+        <div className="field-group">
+          <label className="field-label" htmlFor="widget-bg">Фон (CSS gradient)</label>
           <input
+            id="widget-bg"
             className="admin-input"
-            value={form.tag_bg}
-            onChange={(e) => setField('tag_bg', e.target.value)}
+            value={form.background_style}
+            onChange={(e) => setField('background_style', e.target.value)}
           />
-        </label>
-        <label className="settings-field">
-          <span className="settings-label">Цвет текста тега</span>
-          <input
-            className="admin-input"
-            value={form.tag_color}
-            onChange={(e) => setField('tag_color', e.target.value)}
-          />
-        </label>
-      </div>
+        </div>
 
-      <label className="settings-field" style={{ display: 'block', marginTop: 12 }}>
-        <span className="settings-label">Заголовок</span>
-        <input
-          className="admin-input"
-          required
-          value={form.title}
-          onChange={(e) => setField('title', e.target.value)}
-        />
-      </label>
+        <div className="widget-form__footer">
+          <div className="setting-row widget-form__toggle-row">
+            <div>
+              <div className="setting-label">Активен</div>
+              <div className="setting-sub">Показывать в карусели на главной</div>
+            </div>
+            <Toggle
+              on={form.is_active}
+              onToggle={() => setField('is_active', !form.is_active)}
+              disabled={saving}
+            />
+          </div>
 
-      <label className="settings-field" style={{ display: 'block', marginTop: 12 }}>
-        <span className="settings-label">Описание</span>
-        <textarea
-          className="admin-input"
-          rows={3}
-          value={form.description}
-          onChange={(e) => setField('description', e.target.value)}
-        />
-      </label>
-
-      <label className="settings-field" style={{ display: 'block', marginTop: 12 }}>
-        <span className="settings-label">URL фото (если задан — используется вместо градиента)</span>
-        <input
-          className="admin-input"
-          placeholder="https://..."
-          value={form.image_url}
-          onChange={(e) => setField('image_url', e.target.value)}
-        />
-      </label>
-
-      <label className="settings-field" style={{ display: 'block', marginTop: 12 }}>
-        <span className="settings-label">Фон (CSS gradient), если нет фото</span>
-        <input
-          className="admin-input"
-          value={form.background_style}
-          onChange={(e) => setField('background_style', e.target.value)}
-        />
-      </label>
-
-      <div className="settings-row" style={{ marginTop: 14 }}>
-        <span className="settings-label">Активен</span>
-        <Toggle
-          on={form.is_active}
-          onToggle={() => setField('is_active', !form.is_active)}
-          disabled={saving}
-        />
-      </div>
-
-      <div style={{ display: 'flex', gap: 8, marginTop: 16 }}>
-        <button type="submit" className="btn-primary" disabled={saving}>
-          {saving ? '…' : submitLabel}
-        </button>
-        {onCancel && (
-          <button type="button" className="topbar-btn" onClick={onCancel} disabled={saving}>
-            Отмена
-          </button>
-        )}
-      </div>
-    </form>
+          <div className="widget-form__actions">
+            <button type="submit" className="btn-primary" disabled={saving}>
+              {saving ? '…' : submitLabel}
+            </button>
+            {onCancel && (
+              <button type="button" className="topbar-btn" onClick={onCancel} disabled={saving}>
+                Отмена
+              </button>
+            )}
+          </div>
+        </div>
+      </form>
+    </div>
   )
 }
 
@@ -151,7 +169,7 @@ function WidgetRow({ widget, onEdit, onDelete, deleting }) {
       <td>
         <strong>{widget.title}</strong>
         {widget.tag_text ? (
-          <div style={{ opacity: 0.7, fontSize: 12, marginTop: 4 }}>{widget.tag_text}</div>
+          <div className="table-sub">{widget.tag_text}</div>
         ) : null}
       </td>
       <td>{widget.is_active ? 'Да' : 'Нет'}</td>
@@ -159,7 +177,7 @@ function WidgetRow({ widget, onEdit, onDelete, deleting }) {
         {widget.image_url ? (
           <a href={widget.image_url} target="_blank" rel="noreferrer">Фото</a>
         ) : (
-          <span style={{ opacity: 0.6 }}>Градиент</span>
+          <span className="text-muted">Градиент</span>
         )}
       </td>
       <td>
@@ -169,7 +187,7 @@ function WidgetRow({ widget, onEdit, onDelete, deleting }) {
         {' · '}
         <button
           type="button"
-          className="save-link"
+          className="save-link danger"
           disabled={deleting}
           onClick={() => onDelete(widget.id)}
         >
@@ -243,7 +261,7 @@ export default function HomeWidgetsPage() {
         </div>
       )}
 
-      <div className="page-section" style={{ marginBottom: 14 }}>
+      <div className="page-section page-section--toolbar">
         <button
           type="button"
           className="btn-primary"
@@ -251,6 +269,7 @@ export default function HomeWidgetsPage() {
             setCreating(true)
             setEditing(null)
           }}
+          disabled={creating || Boolean(editing)}
         >
           Добавить виджет
         </button>
@@ -258,6 +277,7 @@ export default function HomeWidgetsPage() {
 
       {creating && (
         <WidgetForm
+          title="Новый виджет"
           initial={emptyForm}
           submitLabel="Создать"
           saving={createMutation.isPending}
@@ -268,6 +288,7 @@ export default function HomeWidgetsPage() {
 
       {editing && (
         <WidgetForm
+          title="Редактирование виджета"
           initial={{
             sort_order: editing.sort_order,
             tag_text: editing.tag_text,
@@ -286,11 +307,11 @@ export default function HomeWidgetsPage() {
         />
       )}
 
-      {isLoading ? (
-        <div className="metric-skeleton" style={{ height: 120 }} />
-      ) : (
-        <div className="page-section">
-          <h2 className="section-title">Виджеты на главной</h2>
+      <div className="page-section">
+        <h2 className="section-title">Список виджетов</h2>
+        {isLoading ? (
+          <div className="metric-skeleton" style={{ height: 120 }} />
+        ) : (
           <div className="table-wrap">
             <table className="admin-table">
               <thead>
@@ -305,7 +326,7 @@ export default function HomeWidgetsPage() {
               <tbody>
                 {widgets.length === 0 ? (
                   <tr>
-                    <td colSpan={5} style={{ opacity: 0.7 }}>
+                    <td colSpan={5} className="empty-state">
                       Нет виджетов — добавьте первый или в приложении покажутся встроенные слайды.
                     </td>
                   </tr>
@@ -330,8 +351,8 @@ export default function HomeWidgetsPage() {
               </tbody>
             </table>
           </div>
-        </div>
-      )}
+        )}
+      </div>
     </div>
   )
 }

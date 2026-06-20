@@ -19,7 +19,7 @@ const overviewNav = [
 const manageNav = [
   { to: '/transactions', icon: Coins, label: 'Транзакции' },
   { to: '/models', icon: LayoutGrid, label: 'Нейросети' },
-  { to: '/home-widgets', icon: Home, label: 'Главная' },
+  { to: '/home-widgets', icon: Home, label: 'Виджеты' },
   { to: '/settings', icon: Settings, label: 'Настройки' },
 ]
 

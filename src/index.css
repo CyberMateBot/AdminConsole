@@ -1197,3 +1197,72 @@ body {
     transition-duration: 0.001s !important;
   }
 }
+
+/* ── Widget form ── */
+.page-section--toolbar {
+  margin-bottom: 0;
+}
+
+.widget-form {
+  max-width: 720px;
+  padding: 18px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: var(--surface);
+  box-shadow: var(--shadow-card);
+}
+
+.widget-form__grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px 16px;
+  margin-bottom: 4px;
+}
+
+.widget-form .field-group {
+  margin-bottom: 14px;
+}
+
+.widget-form .field-group .admin-input,
+.widget-form .field-group .admin-textarea {
+  width: 100%;
+}
+
+.field-hint {
+  margin: 6px 0 0;
+  font-size: 11.5px;
+  color: var(--text-tertiary);
+}
+
+.widget-form__footer {
+  margin-top: 6px;
+  border-top: 1px solid var(--border);
+}
+
+.widget-form__toggle-row {
+  border-bottom: none;
+  padding-left: 0;
+  padding-right: 0;
+}
+
+.widget-form__actions {
+  display: flex;
+  gap: 8px;
+  padding-top: 14px;
+}
+
+.table-sub {
+  margin-top: 4px;
+  font-size: 12px;
+  color: var(--text-tertiary);
+}
+
+.text-muted {
+  color: var(--text-tertiary);
+}
+
+@media (max-width: 640px) {
+  .widget-form__grid {
+    grid-template-columns: 1fr;
+  }
+}
