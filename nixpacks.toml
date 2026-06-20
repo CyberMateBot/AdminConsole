@@ -1,8 +1,10 @@
 [variables]
 NIXPACKS_NODE_VERSION = "22"
+NIXPACKS_INSTALL_DEV_DEPS = "true"
+NIXPACKS_SPA_CADDY = "false"
 
 [phases.build]
-cmds = ["npm ci --include=dev", "npm run build"]
+cmds = ["npm run build"]
 
 [start]
-cmd = "node scripts/server.mjs"
+cmd = "npm start"

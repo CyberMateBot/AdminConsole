@@ -1,8 +1,9 @@
 [build]
-buildCommand = "npm ci --include=dev && npm run build"
+builder = "NIXPACKS"
+buildCommand = "npm run build"
 
 [deploy]
-startCommand = "node scripts/server.mjs"
+startCommand = "npm start"
 healthcheckPath = "/"
 healthcheckTimeout = 300
 restartPolicyType = "ON_FAILURE"
