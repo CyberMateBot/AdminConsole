@@ -28,6 +28,8 @@ const HOP_BY_HOP = new Set([
   'trailer',
   'transfer-encoding',
   'upgrade',
+  'content-encoding',
+  'content-length',
 ])
 
 function apiBaseUrl() {
@@ -65,12 +67,13 @@ async function readRequestBody(req) {
 }
 
 function buildProxyHeaders(req) {
-  const headers = {}
+  const headers = { 'accept-encoding': 'identity' }
   for (const [key, value] of Object.entries(req.headers)) {
     if (value === undefined) continue
     const lower = key.toLowerCase()
     if (HOP_BY_HOP.has(lower)) continue
     if (lower === 'host') continue
+    if (lower === 'accept-encoding') continue
     headers[key] = value
   }
   return headers
