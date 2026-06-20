@@ -1,6 +1,13 @@
-import { useMemo, useState } from 'react'
+import { useMemo, useRef, useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { homeWidgetsApi } from '@/api/homeWidgets'
+import { TAG_PRESETS, matchTagPreset } from '@/constants/homeWidgetTags'
+import {
+  normalizeHexColor,
+  pickerPartsToRgba,
+  rgbaToPickerParts,
+} from '@/utils/color'
+import { compressImageFile } from '@/utils/image'
 
 const emptyForm = {
   sort_order: 0,
@@ -28,12 +35,177 @@ function Toggle({ on, onToggle, disabled }) {
   )
 }
 
+function TagPreview({ tagText, tagBg, tagColor }) {
+  if (!tagText) return null
+  return (
+    <span className="widget-tag-preview" style={{ background: tagBg, color: tagColor }}>
+      {tagText}
+    </span>
+  )
+}
+
+function ColorField({ id, label, value, onChange, mode = 'hex' }) {
+  if (mode === 'rgba') {
+    const { hex, alpha } = rgbaToPickerParts(value)
+    return (
+      <div className="field-group">
+        <label className="field-label" htmlFor={id}>{label}</label>
+        <div className="color-field-row">
+          <input
+            id={id}
+            type="color"
+            className="color-picker-swatch"
+            value={hex}
+            onChange={(e) => onChange(pickerPartsToRgba(e.target.value, alpha))}
+            title="Выберите цвет"
+          />
+          <input
+            type="range"
+            className="color-opacity-range"
+            min={0}
+            max={100}
+            value={alpha}
+            onChange={(e) => onChange(pickerPartsToRgba(hex, Number(e.target.value)))}
+            title="Прозрачность"
+          />
+          <span className="color-opacity-label">{alpha}%</span>
+        </div>
+        <input
+          className="admin-input color-field-text"
+          value={value}
+          onChange={(e) => onChange(e.target.value)}
+          placeholder="rgba(60,200,100,0.85)"
+        />
+      </div>
+    )
+  }
+
+  const pickerHex = normalizeHexColor(value)
+
+  return (
+    <div className="field-group">
+      <label className="field-label" htmlFor={id}>{label}</label>
+      <div className="color-field-row">
+        <input
+          id={id}
+          type="color"
+          className="color-picker-swatch"
+          value={pickerHex}
+          onChange={(e) => onChange(e.target.value)}
+          title="Выберите цвет"
+        />
+        <input
+          className="admin-input color-field-text"
+          value={value}
+          onChange={(e) => onChange(e.target.value)}
+          placeholder="#06291a"
+        />
+      </div>
+    </div>
+  )
+}
+
+function ImageUploadField({ value, onChange, disabled }) {
+  const inputRef = useRef(null)
+  const [uploading, setUploading] = useState(false)
+  const [uploadError, setUploadError] = useState(null)
+
+  const handleFile = async (file) => {
+    if (!file) return
+    setUploading(true)
+    setUploadError(null)
+    try {
+      const dataUrl = await compressImageFile(file)
+      onChange(dataUrl)
+    } catch (err) {
+      setUploadError(err.message || 'Не удалось загрузить фото')
+    } finally {
+      setUploading(false)
+      if (inputRef.current) inputRef.current.value = ''
+    }
+  }
+
+  const isDataUrl = value?.startsWith('data:image/')
+
+  return (
+    <div className="field-group">
+      <label className="field-label">Фото</label>
+      <div className="image-upload">
+        {value ? (
+          <div className="image-upload__preview-wrap">
+            <img src={value} alt="" className="image-upload__preview" />
+            <button
+              type="button"
+              className="topbar-btn image-upload__clear"
+              disabled={disabled || uploading}
+              onClick={() => onChange('')}
+            >
+              Удалить
+            </button>
+          </div>
+        ) : (
+          <div className="image-upload__placeholder">Фото не выбрано</div>
+        )}
+
+        <div className="image-upload__actions">
+          <input
+            ref={inputRef}
+            type="file"
+            accept="image/jpeg,image/png,image/webp,image/gif"
+            className="image-upload__input"
+            disabled={disabled || uploading}
+            onChange={(e) => handleFile(e.target.files?.[0])}
+          />
+          <button
+            type="button"
+            className="btn-secondary"
+            disabled={disabled || uploading}
+            onClick={() => inputRef.current?.click()}
+          >
+            {uploading ? 'Загрузка…' : 'Загрузить с компьютера'}
+          </button>
+        </div>
+
+        <div className="field-group" style={{ marginBottom: 0, marginTop: 10 }}>
+          <label className="field-label" htmlFor="widget-image-url">или URL фото</label>
+          <input
+            id="widget-image-url"
+            className="admin-input"
+            placeholder="https://..."
+            value={isDataUrl ? '' : value}
+            disabled={disabled || uploading || isDataUrl}
+            onChange={(e) => onChange(e.target.value)}
+          />
+        </div>
+
+        {uploadError && <p className="login-error">{uploadError}</p>}
+        <p className="field-hint">JPG, PNG, WebP до ~1 МБ. Если указано фото — оно используется вместо градиента.</p>
+      </div>
+    </div>
+  )
+}
+
 function WidgetForm({ title, initial, submitLabel, onSubmit, onCancel, saving }) {
   const [form, setForm] = useState(initial)
+  const [tagPresetId, setTagPresetId] = useState(() => matchTagPreset(initial))
 
   const setField = (key, value) => {
     setForm((prev) => ({ ...prev, [key]: value }))
   }
+
+  const applyTagPreset = (presetId) => {
+    setTagPresetId(presetId)
+    const preset = TAG_PRESETS.find((p) => p.id === presetId)
+    if (!preset || presetId === 'custom') return
+    setForm((prev) => ({
+      ...prev,
+      tag_text: preset.tag_text,
+      tag_bg: preset.tag_bg || prev.tag_bg,
+      tag_color: preset.tag_color || prev.tag_color,
+    }))
+  }
+
+  const showCustomTagInput = tagPresetId === 'custom'
 
   return (
     <div className="page-section">
@@ -59,34 +231,58 @@ function WidgetForm({ title, initial, submitLabel, onSubmit, onCancel, saving })
               onChange={(e) => setField('sort_order', e.target.value)}
             />
           </div>
+
           <div className="field-group">
-            <label className="field-label" htmlFor="widget-tag">Тег</label>
-            <input
-              id="widget-tag"
-              className="admin-input"
-              placeholder="NEW"
-              value={form.tag_text}
-              onChange={(e) => setField('tag_text', e.target.value)}
-            />
+            <label className="field-label" htmlFor="widget-tag-preset">Тег</label>
+            <select
+              id="widget-tag-preset"
+              className="admin-select"
+              value={tagPresetId}
+              onChange={(e) => applyTagPreset(e.target.value)}
+            >
+              {TAG_PRESETS.map((preset) => (
+                <option key={preset.id} value={preset.id}>{preset.label}</option>
+              ))}
+            </select>
+            {showCustomTagInput && (
+              <input
+                className="admin-input"
+                style={{ marginTop: 8 }}
+                placeholder="Текст тега, например UPDATE"
+                value={form.tag_text}
+                onChange={(e) => setField('tag_text', e.target.value)}
+              />
+            )}
+            <div style={{ marginTop: 8 }}>
+              <TagPreview
+                tagText={form.tag_text}
+                tagBg={form.tag_bg}
+                tagColor={form.tag_color}
+              />
+            </div>
           </div>
-          <div className="field-group">
-            <label className="field-label" htmlFor="widget-tag-bg">Цвет тега (фон)</label>
-            <input
-              id="widget-tag-bg"
-              className="admin-input"
-              value={form.tag_bg}
-              onChange={(e) => setField('tag_bg', e.target.value)}
-            />
-          </div>
-          <div className="field-group">
-            <label className="field-label" htmlFor="widget-tag-color">Цвет текста тега</label>
-            <input
-              id="widget-tag-color"
-              className="admin-input"
-              value={form.tag_color}
-              onChange={(e) => setField('tag_color', e.target.value)}
-            />
-          </div>
+
+          <ColorField
+            id="widget-tag-bg"
+            label="Цвет тега (фон)"
+            mode="rgba"
+            value={form.tag_bg}
+            onChange={(v) => {
+              setTagPresetId('custom')
+              setField('tag_bg', v)
+            }}
+          />
+
+          <ColorField
+            id="widget-tag-color"
+            label="Цвет текста тега"
+            mode="hex"
+            value={form.tag_color}
+            onChange={(v) => {
+              setTagPresetId('custom')
+              setField('tag_color', v)
+            }}
+          />
         </div>
 
         <div className="field-group">
@@ -111,17 +307,11 @@ function WidgetForm({ title, initial, submitLabel, onSubmit, onCancel, saving })
           />
         </div>
 
-        <div className="field-group">
-          <label className="field-label" htmlFor="widget-image">URL фото</label>
-          <input
-            id="widget-image"
-            className="admin-input"
-            placeholder="https://..."
-            value={form.image_url}
-            onChange={(e) => setField('image_url', e.target.value)}
-          />
-          <p className="field-hint">Если указан URL — фото используется вместо градиента</p>
-        </div>
+        <ImageUploadField
+          value={form.image_url}
+          onChange={(v) => setField('image_url', v)}
+          disabled={saving}
+        />
 
         <div className="field-group">
           <label className="field-label" htmlFor="widget-bg">Фон (CSS gradient)</label>
@@ -130,7 +320,11 @@ function WidgetForm({ title, initial, submitLabel, onSubmit, onCancel, saving })
             className="admin-input"
             value={form.background_style}
             onChange={(e) => setField('background_style', e.target.value)}
+            disabled={Boolean(form.image_url)}
           />
+          {form.image_url ? (
+            <p className="field-hint">Градиент не используется, пока задано фото</p>
+          ) : null}
         </div>
 
         <div className="widget-form__footer">
@@ -169,7 +363,13 @@ function WidgetRow({ widget, onEdit, onDelete, deleting }) {
       <td>
         <strong>{widget.title}</strong>
         {widget.tag_text ? (
-          <div className="table-sub">{widget.tag_text}</div>
+          <div className="table-sub">
+            <TagPreview
+              tagText={widget.tag_text}
+              tagBg={widget.tag_bg}
+              tagColor={widget.tag_color}
+            />
+          </div>
         ) : null}
       </td>
       <td>{widget.is_active ? 'Да' : 'Нет'}</td>
@@ -277,6 +477,7 @@ export default function HomeWidgetsPage() {
 
       {creating && (
         <WidgetForm
+          key="create"
           title="Новый виджет"
           initial={emptyForm}
           submitLabel="Создать"
@@ -288,6 +489,7 @@ export default function HomeWidgetsPage() {
 
       {editing && (
         <WidgetForm
+          key={editing.id}
           title="Редактирование виджета"
           initial={{
             sort_order: editing.sort_order,
