@@ -1,36 +1,69 @@
 import { NavLink } from 'react-router-dom'
-import { LayoutDashboard, Users, Megaphone } from 'lucide-react'
+import {
+  LayoutDashboard,
+  Users,
+  Megaphone,
+  Coins,
+  LayoutGrid,
+  Home,
+  Settings,
+  Shield,
+} from 'lucide-react'
 
-const navItems = [
+const overviewNav = [
   { to: '/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
   { to: '/users', icon: Users, label: 'Пользователи' },
   { to: '/broadcast', icon: Megaphone, label: 'Рассылки' },
 ]
 
+const manageNav = [
+  { to: '/transactions', icon: Coins, label: 'Транзакции' },
+  { to: '/models', icon: LayoutGrid, label: 'Нейросети' },
+  { to: '/home-widgets', icon: Home, label: 'Главная' },
+  { to: '/settings', icon: Settings, label: 'Настройки' },
+]
+
 export default function Sidebar() {
   return (
-    <aside className="w-56 bg-base-100 border-r border-base-300 flex flex-col">
-      <div className="px-5 py-4 border-b border-base-300">
-        <span className="font-semibold text-sm">CyberMate Admin</span>
+    <aside className="sidebar">
+      <div className="sidebar-logo">
+        <div className="mark">
+          <Shield size={14} strokeWidth={2.5} />
+          <span className="pulse-dot" />
+        </div>
+        <span className="label">CyberMate</span>
       </div>
-      <nav className="flex-1 px-3 py-3 space-y-1">
-        {navItems.map(({ to, icon: Icon, label }) => (
+
+      <nav className="nav">
+        <div className="nav-section-label label">Обзор</div>
+        {overviewNav.map(({ to, icon: Icon, label }) => (
           <NavLink
             key={to}
             to={to}
-            className={({ isActive }) =>
-              `flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-colors ${
-                isActive
-                  ? 'bg-primary text-primary-content'
-                  : 'text-base-content/70 hover:bg-base-200'
-              }`
-            }
+            className={({ isActive }) => `nav-item${isActive ? ' active' : ''}`}
           >
-            <Icon size={16} />
-            {label}
+            <Icon size={17} strokeWidth={2} />
+            <span className="label">{label}</span>
+          </NavLink>
+        ))}
+
+        <div className="nav-section-label label nav-section-spacer">Управление</div>
+        {manageNav.map(({ to, icon: Icon, label }) => (
+          <NavLink
+            key={to}
+            to={to}
+            className={({ isActive }) => `nav-item${isActive ? ' active' : ''}`}
+          >
+            <Icon size={17} strokeWidth={2} />
+            <span className="label">{label}</span>
           </NavLink>
         ))}
       </nav>
+
+      <div className="sidebar-foot">
+        <span className="dot" />
+        <span className="label">v1.4.2 · prod online</span>
+      </div>
     </aside>
   )
 }

@@ -1,24 +1,39 @@
 import { useLocation } from 'react-router-dom'
-import { LogOut } from 'lucide-react'
+import { LogOut, Moon, Sun } from 'lucide-react'
 import { useAuth } from '@/hooks/useAuth'
+import { useTheme } from '@/hooks/useTheme'
 
 const titles = {
   '/dashboard': 'Dashboard',
   '/users': 'Пользователи',
   '/broadcast': 'Рассылки',
+  '/transactions': 'Транзакции',
+  '/models': 'Нейросети',
+  '/home-widgets': 'Главная',
+  '/settings': 'Настройки',
 }
 
 export default function Header() {
   const { pathname } = useLocation()
   const { admin, logout } = useAuth()
+  const { theme, toggleTheme } = useTheme()
 
   return (
-    <header className="bg-base-100 border-b border-base-300 px-6 py-3 flex items-center justify-between">
-      <h1 className="text-sm font-medium">{titles[pathname] ?? 'Admin'}</h1>
-      <div className="flex items-center gap-3">
-        <span className="text-xs text-base-content/50">{admin?.email}</span>
-        <button className="btn btn-ghost btn-xs gap-1.5" onClick={logout}>
-          <LogOut size={13} />
+    <header className="topbar">
+      <h3>{titles[pathname] ?? 'Admin'}</h3>
+      <div className="topbar-right">
+        <span className="topbar-email">{admin?.email}</span>
+        <button
+          type="button"
+          className="topbar-btn"
+          onClick={toggleTheme}
+          title={theme === 'dark' ? 'Светлая тема' : 'Тёмная тема'}
+          aria-label="Переключить тему"
+        >
+          {theme === 'dark' ? <Sun size={14} /> : <Moon size={14} />}
+        </button>
+        <button type="button" className="topbar-btn" onClick={logout}>
+          <LogOut size={14} />
           Выйти
         </button>
       </div>

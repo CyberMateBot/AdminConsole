@@ -1,11 +1,12 @@
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { usersApi } from '@/api/users'
 import UserTokensModal from '@/components/users/UserTokensModal'
-import { Search } from 'lucide-react'
+import { formatDate, formatUserName, getInitials } from '@/utils/user'
 
 export default function UsersPage() {
   const [search, setSearch] = useState('')
+  const [statusFilter, setStatusFilter] = useState('all')
   const [page, setPage] = useState(1)
   const [selectedUser, setSelectedUser] = useState(null)
   const qc = useQueryClient()
@@ -37,35 +38,52 @@ export default function UsersPage() {
     )
   }
 
+  const filteredUsers = useMemo(() => {
+    const list = data?.data ?? []
+    if (statusFilter === 'active') return list.filter(u => u.is_active)
+    if (statusFilter === 'blocked') return list.filter(u => !u.is_active)
+    return list
+  }, [data?.data, statusFilter])
+
   const totalPages = data ? Math.ceil(data.total / 20) : 0
 
-  function formatDate(value) {
-    if (!value) return '—'
-    const date = new Date(value)
-    return Number.isNaN(date.getTime()) ? '—' : date.toLocaleDateString('ru')
-  }
-
   return (
-    <div className="space-y-4">
-      <label className="input input-bordered flex items-center gap-2 max-w-sm">
-        <Search size={14} className="text-base-content/40" />
+    <div className="page">
+      <div className="search-row">
         <input
           type="text"
+          className="admin-input"
           placeholder="Поиск по username или имени..."
           value={search}
           onChange={e => { setSearch(e.target.value); setPage(1) }}
-          className="grow"
         />
-      </label>
+        <select
+          className="admin-select"
+          value={statusFilter}
+          onChange={e => setStatusFilter(e.target.value)}
+        >
+          <option value="all">Все статусы</option>
+          <option value="active">Активен</option>
+          <option value="blocked">Заблокирован</option>
+        </select>
+      </div>
 
       {isError && (
-        <div className="alert alert-error text-sm">
+        <div className="alert alert-error" style={{ marginBottom: 14 }}>
           Не удалось загрузить пользователей. Проверьте соединение с бэкендом.
         </div>
       )}
 
-      <div className="card bg-base-100 shadow-sm overflow-x-auto">
-        <table className="table table-sm">
+      <div className="table-wrap">
+        <table className="admin-table">
+          <colgroup>
+            <col style={{ width: '26%' }} />
+            <col style={{ width: '16%' }} />
+            <col style={{ width: '12%' }} />
+            <col style={{ width: '12%' }} />
+            <col style={{ width: '16%' }} />
+            <col style={{ width: '18%' }} />
+          </colgroup>
           <thead>
             <tr>
               <th>Пользователь</th>
@@ -73,7 +91,7 @@ export default function UsersPage() {
               <th>Токены</th>
               <th>Статус</th>
               <th>Регистрация</th>
-              <th></th>
+              <th />
             </tr>
           </thead>
           <tbody>
@@ -81,84 +99,66 @@ export default function UsersPage() {
               ? Array.from({ length: 5 }).map((_, i) => (
                   <tr key={i}>
                     {Array.from({ length: 6 }).map((_, j) => (
-                      <td key={j}><div className="skeleton h-4 w-full" /></td>
+                      <td key={j}><div className="metric-skeleton" style={{ width: '80%' }} /></td>
                     ))}
                   </tr>
                 ))
-              : data?.data?.length
-                ? data.data.map(user => (
-                  <tr key={user.id} className="hover">
+              : filteredUsers.length
+                ? filteredUsers.map(user => (
+                  <tr key={user.id}>
                     <td>
-                      <div className="font-medium text-sm">
-                        {user.first_name} {user.last_name}
+                      <div className="user-cell">
+                        <div className="avatar-sm">{getInitials(user)}</div>
+                        <div style={{ minWidth: 0 }}>
+                          <div className="uname">{formatUserName(user)}</div>
+                          {user.username && (
+                            <div className="uhandle">@{user.username}</div>
+                          )}
+                        </div>
                       </div>
-                      {user.username && (
-                        <div className="text-xs text-base-content/50">@{user.username}</div>
-                      )}
                     </td>
-                    <td className="text-sm text-base-content/60">{user.telegram_id}</td>
-                    <td className="text-sm font-medium tabular-nums">
-                      {(user.tokens ?? 0).toLocaleString('ru')}
-                    </td>
+                    <td className="mono">{user.telegram_id}</td>
+                    <td className="tnum">{(user.tokens ?? 0).toLocaleString('ru')}</td>
                     <td>
-                      <span className={`badge badge-sm ${user.is_active ? 'badge-success' : 'badge-ghost'}`}>
+                      <span className={`badge ${user.is_active ? 'badge-active' : 'badge-blocked'}`}>
                         {user.is_active ? 'Активен' : 'Заблокирован'}
                       </span>
                     </td>
-                    <td className="text-xs text-base-content/50">
-                      {formatDate(user.created_at)}
-                    </td>
+                    <td>{formatDate(user.created_at)}</td>
                     <td>
-                      <div className="flex gap-1 justify-end">
-                        <button
-                          className="btn btn-ghost btn-xs"
-                          onClick={() => setSelectedUser(user)}
-                        >
+                      <div className="row-actions">
+                        <button type="button" onClick={() => setSelectedUser(user)}>
                           Токены
                         </button>
                         <button
-                          className="btn btn-ghost btn-xs"
+                          type="button"
+                          className={user.is_active ? 'danger' : ''}
                           onClick={() => toggleMutation.mutate({ id: user.id, is_active: !user.is_active })}
                           disabled={toggleMutation.isPending}
                         >
-                          {user.is_active ? 'Заблокировать' : 'Активировать'}
+                          {user.is_active ? 'Блок' : 'Снять блок'}
                         </button>
                       </div>
                     </td>
                   </tr>
                 ))
-                : !isLoading && (
+                : (
                   <tr>
-                    <td colSpan={6} className="text-center text-sm text-base-content/50 py-6">
+                    <td colSpan={6} className="empty-state">
                       Пользователи не найдены
                     </td>
                   </tr>
-                )
-            }
+                )}
           </tbody>
         </table>
       </div>
 
-      <div className="flex items-center justify-between text-sm text-base-content/50">
+      <div className="pagination">
         <span>Всего: {data?.total ?? 0}</span>
-        <div className="join">
-          <button
-            className="join-item btn btn-sm"
-            disabled={page === 1}
-            onClick={() => setPage(p => p - 1)}
-          >
-            «
-          </button>
-          <button className="join-item btn btn-sm btn-disabled">
-            {page} / {totalPages || 1}
-          </button>
-          <button
-            className="join-item btn btn-sm"
-            disabled={page >= totalPages}
-            onClick={() => setPage(p => p + 1)}
-          >
-            »
-          </button>
+        <div className="pagination-btns">
+          <button type="button" disabled={page === 1} onClick={() => setPage(p => p - 1)}>«</button>
+          <button type="button" disabled>{page} / {totalPages || 1}</button>
+          <button type="button" disabled={page >= totalPages} onClick={() => setPage(p => p + 1)}>»</button>
         </div>
       </div>
 

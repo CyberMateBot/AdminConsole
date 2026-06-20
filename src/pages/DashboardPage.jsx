@@ -1,19 +1,15 @@
 import { useQuery } from '@tanstack/react-query'
 import { statsApi } from '@/api/stats'
-import { Users, UserCheck, TrendingUp, MessageSquare } from 'lucide-react'
+import { eventsApi } from '@/api/events'
+import { formatDateTime } from '@/utils/user'
 
-function StatCard({ label, value, icon: Icon }) {
+function MetricCard({ label, value, loading }) {
   return (
-    <div className="card bg-base-100 shadow-sm">
-      <div className="card-body p-4">
-        <div className="flex items-center justify-between mb-1">
-          <span className="text-xs text-base-content/50">{label}</span>
-          <Icon size={14} className="text-base-content/40" />
-        </div>
-        <span className="text-2xl font-semibold">
-          {value?.toLocaleString('ru') ?? '—'}
-        </span>
-      </div>
+    <div className="metric-card">
+      <div className="metric-label">{label}</div>
+      {loading
+        ? <div className="metric-skeleton" />
+        : <div className="metric-val">{value?.toLocaleString('ru') ?? '—'}</div>}
     </div>
   )
 }
@@ -24,35 +20,81 @@ export default function DashboardPage() {
     queryFn: statsApi.get,
   })
 
-  if (isLoading) {
-    return (
-      <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
-        {Array.from({ length: 4 }).map((_, i) => (
-          <div key={i} className="card bg-base-100 shadow-sm">
-            <div className="card-body p-4">
-              <div className="skeleton h-3 w-24 mb-3" />
-              <div className="skeleton h-8 w-16" />
-            </div>
-          </div>
-        ))}
-      </div>
-    )
-  }
+  const { data: eventsData, isLoading: eventsLoading, isError: eventsError } = useQuery({
+    queryKey: ['events'],
+    queryFn: () => eventsApi.list({ limit: 20 }),
+  })
 
-  if (isError) {
-    return (
-      <div className="alert alert-error text-sm max-w-lg">
-        Не удалось загрузить статистику. Проверьте соединение с бэкендом.
-      </div>
-    )
-  }
+  const events = eventsData?.data ?? []
 
   return (
-    <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
-      <StatCard label="Всего пользователей" value={data?.total_users} icon={Users} />
-      <StatCard label="Активны сегодня" value={data?.active_users_today} icon={UserCheck} />
-      <StatCard label="Новые сегодня" value={data?.new_users_today} icon={TrendingUp} />
-      <StatCard label="Всего сообщений" value={data?.total_messages} icon={MessageSquare} />
+    <div className="page">
+      <div className="page-section">
+        {isError && (
+          <div className="alert alert-error" style={{ marginBottom: 14 }}>
+            Не удалось загрузить статистику. Проверьте соединение с бэкендом.
+          </div>
+        )}
+        <div className="metric-grid">
+          <MetricCard label="Всего пользователей" value={data?.total_users} loading={isLoading} />
+          <MetricCard label="Активны сегодня" value={data?.active_users_today} loading={isLoading} />
+          <MetricCard label="Новые сегодня" value={data?.new_users_today} loading={isLoading} />
+          <MetricCard label="Всего сообщений" value={data?.total_messages} loading={isLoading} />
+        </div>
+      </div>
+
+      <div className="page-section">
+        <h2 className="section-title">Последние события</h2>
+        {eventsError && (
+          <div className="alert alert-error" style={{ marginBottom: 14 }}>
+            Не удалось загрузить журнал событий.
+          </div>
+        )}
+        <div className="table-wrap">
+          <table className="admin-table">
+            <colgroup>
+              <col style={{ width: '18%' }} />
+              <col style={{ width: '20%' }} />
+              <col style={{ width: '30%' }} />
+              <col style={{ width: '32%' }} />
+            </colgroup>
+            <thead>
+              <tr>
+                <th>Время</th>
+                <th>Пользователь</th>
+                <th>Действие</th>
+                <th>Детали</th>
+              </tr>
+            </thead>
+            <tbody>
+              {eventsLoading
+                ? Array.from({ length: 4 }).map((_, i) => (
+                    <tr key={i}>
+                      {Array.from({ length: 4 }).map((__, j) => (
+                        <td key={j}><div className="metric-skeleton" style={{ width: '80%' }} /></td>
+                      ))}
+                    </tr>
+                  ))
+                : events.length
+                  ? events.map(event => (
+                      <tr key={event.id}>
+                        <td>{formatDateTime(event.time)}</td>
+                        <td>{event.user}</td>
+                        <td>{event.action}</td>
+                        <td>{event.details}</td>
+                      </tr>
+                    ))
+                  : (
+                      <tr>
+                        <td colSpan={4} className="empty-state">
+                          Событий пока нет
+                        </td>
+                      </tr>
+                    )}
+            </tbody>
+          </table>
+        </div>
+      </div>
     </div>
   )
 }

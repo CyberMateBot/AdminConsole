@@ -1,12 +1,8 @@
 import { useState } from 'react'
 import { useMutation } from '@tanstack/react-query'
-import { usersApi } from '@/api/users'
 import { Coins, X } from 'lucide-react'
-
-function formatUserName(user) {
-  const name = [user.first_name, user.last_name].filter(Boolean).join(' ')
-  return name || user.username || `ID ${user.id}`
-}
+import { usersApi } from '@/api/users'
+import { formatUserName } from '@/utils/user'
 
 export default function UserTokensModal({ user, onClose, onSuccess }) {
   const [amount, setAmount] = useState('')
@@ -44,88 +40,86 @@ export default function UserTokensModal({ user, onClose, onSuccess }) {
   }
 
   return (
-    <dialog className="modal modal-open">
-      <div className="modal-box max-w-md">
-        <div className="flex items-start justify-between gap-3 mb-4">
+    <div className="modal-overlay" onClick={onClose}>
+      <div className="modal-box" onClick={e => e.stopPropagation()}>
+        <div className="modal-header">
           <div>
-            <h3 className="font-semibold text-base">Токены пользователя</h3>
-            <p className="text-sm text-base-content/60 mt-1">{formatUserName(user)}</p>
+            <h3 className="modal-title">Токены пользователя</h3>
+            <p className="modal-sub">{formatUserName(user)}</p>
             {user.username && (
-              <p className="text-xs text-base-content/50">@{user.username}</p>
+              <p className="modal-sub uhandle">@{user.username}</p>
             )}
           </div>
-          <button className="btn btn-ghost btn-sm btn-circle" onClick={onClose}>
-            <X size={16} />
+          <button type="button" className="modal-close" onClick={onClose} aria-label="Закрыть">
+            <X size={18} />
           </button>
         </div>
 
-        <div className="flex items-center gap-2 p-3 rounded-lg bg-base-200 mb-4">
-          <Coins size={18} className="text-primary" />
+        <div className="balance-box">
+          <Coins size={20} style={{ color: 'var(--accent-text)' }} />
           <div>
-            <p className="text-xs text-base-content/50">Текущий баланс</p>
-            <p className="text-xl font-semibold">
-              {(user.tokens ?? 0).toLocaleString('ru')}
-            </p>
+            <p className="label">Текущий баланс</p>
+            <p className="value">{(user.tokens ?? 0).toLocaleString('ru')}</p>
           </div>
         </div>
 
-        <div className="space-y-3">
-          <label className="form-control w-full">
-            <div className="label"><span className="label-text">Количество</span></div>
-            <input
-              type="number"
-              min="1"
-              step="1"
-              className="input input-bordered w-full"
-              placeholder="100"
-              value={amount}
-              onChange={e => setAmount(e.target.value)}
-              autoFocus
-            />
+        <div className="field-group">
+          <label className="field-label" htmlFor="token-amount">Количество</label>
+          <input
+            id="token-amount"
+            type="number"
+            min="1"
+            step="1"
+            className="admin-input"
+            style={{ width: '100%' }}
+            placeholder="100"
+            value={amount}
+            onChange={e => setAmount(e.target.value)}
+            autoFocus
+          />
+        </div>
+
+        <div className="field-group">
+          <label className="field-label" htmlFor="token-reason">
+            Причина <span style={{ fontWeight: 400, color: 'var(--text-tertiary)' }}>(необязательно)</span>
           </label>
+          <input
+            id="token-reason"
+            type="text"
+            className="admin-input"
+            style={{ width: '100%' }}
+            placeholder="Бонус за активность"
+            value={reason}
+            onChange={e => setReason(e.target.value)}
+            maxLength={255}
+          />
+        </div>
 
-          <label className="form-control w-full">
-            <div className="label">
-              <span className="label-text">Причина</span>
-              <span className="label-text-alt text-base-content/40">необязательно</span>
-            </div>
-            <input
-              type="text"
-              className="input input-bordered w-full"
-              placeholder="Бонус за активность"
-              value={reason}
-              onChange={e => setReason(e.target.value)}
-              maxLength={255}
-            />
-          </label>
+        {error && <p className="login-error">{error}</p>}
 
-          {error && <p className="text-error text-xs">{error}</p>}
-
-          <div className="flex gap-2 pt-1">
-            <button
-              className="btn btn-success flex-1"
-              onClick={() => handleSubmit('credit')}
-              disabled={mutation.isPending}
-            >
-              {mutation.isPending && mutation.variables?.action === 'credit'
-                ? <span className="loading loading-spinner loading-sm" />
-                : 'Начислить'}
-            </button>
-            <button
-              className="btn btn-warning flex-1"
-              onClick={() => handleSubmit('debit')}
-              disabled={mutation.isPending}
-            >
-              {mutation.isPending && mutation.variables?.action === 'debit'
-                ? <span className="loading loading-spinner loading-sm" />
-                : 'Списать'}
-            </button>
-          </div>
+        <div className="modal-actions">
+          <button
+            type="button"
+            className="btn-success"
+            onClick={() => handleSubmit('credit')}
+            disabled={mutation.isPending}
+          >
+            {mutation.isPending && mutation.variables?.action === 'credit'
+              ? <span className="spinner" />
+              : 'Начислить'}
+          </button>
+          <button
+            type="button"
+            className="btn-warning"
+            onClick={() => handleSubmit('debit')}
+            disabled={mutation.isPending}
+          >
+            {mutation.isPending && mutation.variables?.action === 'debit'
+              ? <span className="spinner" />
+              : 'Списать'}
+          </button>
         </div>
       </div>
-      <form method="dialog" className="modal-backdrop" onClick={onClose}>
-        <button type="button">close</button>
-      </form>
-    </dialog>
+    </div>
   )
 }

@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { useNavigate, Navigate } from 'react-router-dom'
+import { Shield } from 'lucide-react'
 import { useAuth } from '@/hooks/useAuth'
 
 export default function LoginPage() {
@@ -29,42 +30,48 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-100">
-      <div className="card bg-base-100 shadow w-full max-w-sm">
-        <div className="card-body">
-          <h2 className="card-title text-base">Вход в Admin Panel</h2>
-          <form onSubmit={handleSubmit} className="space-y-3 mt-2">
-            <label className="form-control w-full">
-              <div className="label"><span className="label-text">Email</span></div>
-              <input
-                type="email"
-                className="input input-bordered w-full"
-                value={email}
-                onChange={e => setEmail(e.target.value)}
-                required
-                autoFocus
-              />
-            </label>
-            <label className="form-control w-full">
-              <div className="label"><span className="label-text">Пароль</span></div>
-              <input
-                type="password"
-                className="input input-bordered w-full"
-                value={password}
-                onChange={e => setPassword(e.target.value)}
-                required
-              />
-            </label>
-            {error && <p className="text-error text-xs">{error}</p>}
-            <button
-              type="submit"
-              className="btn btn-primary w-full"
-              disabled={loading}
-            >
-              {loading ? <span className="loading loading-spinner loading-sm" /> : 'Войти'}
-            </button>
-          </form>
+    <div className="login-page">
+      <div className="login-card">
+        <div className="login-logo">
+          <div className="mark">
+            <Shield size={18} strokeWidth={2.5} />
+          </div>
+          <span>CyberMate Admin</span>
         </div>
+        <p className="login-title">Вход в панель управления</p>
+
+        <form onSubmit={handleSubmit} className="login-form">
+          <div className="field-group" style={{ marginBottom: 0 }}>
+            <label className="field-label" htmlFor="email">Email</label>
+            <input
+              id="email"
+              type="email"
+              className="admin-input"
+              value={email}
+              onChange={e => setEmail(e.target.value)}
+              required
+              autoFocus
+            />
+          </div>
+
+          <div className="field-group" style={{ marginBottom: 0 }}>
+            <label className="field-label" htmlFor="password">Пароль</label>
+            <input
+              id="password"
+              type="password"
+              className="admin-input"
+              value={password}
+              onChange={e => setPassword(e.target.value)}
+              required
+            />
+          </div>
+
+          {error && <p className="login-error">{error}</p>}
+
+          <button type="submit" className="btn-primary" style={{ width: '100%' }} disabled={loading}>
+            {loading ? <span className="spinner" /> : 'Войти'}
+          </button>
+        </form>
       </div>
     </div>
   )
