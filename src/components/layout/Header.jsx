@@ -8,6 +8,7 @@ const titles = {
   '/users': 'Пользователи',
   '/broadcast': 'Рассылки',
   '/transactions': 'Транзакции',
+  '/pricing': 'Тарифы',
   '/models': 'Нейросети',
   '/home-widgets': 'Виджеты',
   '/settings': 'Настройки',

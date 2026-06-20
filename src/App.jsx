@@ -9,6 +9,7 @@ import TransactionsPage from '@/pages/TransactionsPage'
 import ModelsPage from '@/pages/ModelsPage'
 import SettingsPage from '@/pages/SettingsPage'
 import HomeWidgetsPage from '@/pages/HomeWidgetsPage'
+import PricingPage from '@/pages/PricingPage'
 import { useAuth } from '@/hooks/useAuth'
 
 const queryClient = new QueryClient({
@@ -43,6 +44,7 @@ export default function App() {
             <Route path="transactions" element={<TransactionsPage />} />
             <Route path="models" element={<ModelsPage />} />
             <Route path="home-widgets" element={<HomeWidgetsPage />} />
+            <Route path="pricing" element={<PricingPage />} />
             <Route path="settings" element={<SettingsPage />} />
           </Route>
           <Route path="*" element={<Navigate to="/" replace />} />

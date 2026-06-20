@@ -1266,3 +1266,19 @@ body {
     grid-template-columns: 1fr;
   }
 }
+
+.pricing-stack {
+  display: grid;
+  gap: 14px;
+}
+
+.pricing-card {
+  margin-bottom: 0;
+}
+
+.pricing-inline-row {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 8px;
+  margin-bottom: 8px;
+}

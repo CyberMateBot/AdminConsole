@@ -4,6 +4,7 @@ import {
   Users,
   Megaphone,
   Coins,
+  CreditCard,
   LayoutGrid,
   Home,
   Settings,
@@ -18,6 +19,7 @@ const overviewNav = [
 
 const manageNav = [
   { to: '/transactions', icon: Coins, label: 'Транзакции' },
+  { to: '/pricing', icon: CreditCard, label: 'Тарифы' },
   { to: '/models', icon: LayoutGrid, label: 'Нейросети' },
   { to: '/home-widgets', icon: Home, label: 'Виджеты' },
   { to: '/settings', icon: Settings, label: 'Настройки' },

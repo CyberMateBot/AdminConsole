@@ -32,7 +32,7 @@ export default function SettingsPage() {
   const [maintenance, setMaintenance] = useState(false)
   const [yookassa, setYookassa] = useState(true)
   const [stars, setStars] = useState(true)
-  const [coinRate, setCoinRate] = useState('0.7')
+  const [coinRate, setCoinRate] = useState('1')
   const [saved, setSaved] = useState(false)
 
   useEffect(() => {
@@ -43,7 +43,7 @@ export default function SettingsPage() {
     setMaintenance(Boolean(data.maintenance_mode))
     setYookassa(data.yookassa_enabled ?? true)
     setStars(data.telegram_stars_enabled ?? true)
-    setCoinRate(String(data.coin_rate_rub ?? 0.7))
+    setCoinRate(String(data.coin_rate_rub ?? 1))
   }, [data])
 
   const mutation = useMutation({
@@ -169,8 +169,8 @@ export default function SettingsPage() {
           </div>
           <div className="setting-row">
             <div>
-              <div className="setting-label">Курс монеты</div>
-              <div className="setting-sub">Рублей за 1 монету при покупке</div>
+              <div className="setting-label">Базовый курс монеты</div>
+              <div className="setting-sub">Рублей за 1 CyberCoin (розница). Пакеты могут иметь свою цену.</div>
             </div>
             <div className="price-input">
               <input
