@@ -1,9 +1,12 @@
-import { createServer } from 'node:http'
+import { createServer, request as httpRequest } from 'node:http'
+import { request as httpsRequest } from 'node:https'
 import { readFile } from 'node:fs/promises'
+import { existsSync } from 'node:fs'
 import { join, extname } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
 const ROOT = join(fileURLToPath(new URL('.', import.meta.url)), '..', 'dist')
+const HOST = process.env.HOST || '0.0.0.0'
 const PORT = Number(process.env.PORT) || 3000
 
 const MIME = {
@@ -20,7 +23,11 @@ const MIME = {
 }
 
 function apiBaseUrl() {
-  return (process.env.API_BASE_URL || process.env.VITE_API_BASE_URL || '').replace(/\/$/, '')
+  const raw = process.env.API_BASE_URL
+    || process.env.VITE_API_BASE_URL
+    || process.env.VITE_API_URL
+    || ''
+  return raw.replace(/\/$/, '')
 }
 
 function injectConfig(html) {
@@ -51,9 +58,63 @@ async function serveIndex(res) {
   res.end(html)
 }
 
+function proxyApi(req, res, pathname, search) {
+  const base = apiBaseUrl()
+  if (!base) {
+    res.writeHead(502, { 'Content-Type': 'application/json; charset=utf-8' })
+    res.end(JSON.stringify({
+      error: 'API_BASE_URL is not configured on Admin Panel service',
+      hint: 'Set API_BASE_URL=https://your-backend.up.railway.app in Railway variables',
+    }))
+    return
+  }
+
+  const target = new URL(`${pathname}${search}`, `${base}/`)
+  const transport = target.protocol === 'https:' ? httpsRequest : httpRequest
+
+  const headers = { ...req.headers, host: target.host }
+  delete headers.connection
+
+  const proxyReq = transport(
+    {
+      protocol: target.protocol,
+      hostname: target.hostname,
+      port: target.port || (target.protocol === 'https:' ? 443 : 80),
+      path: `${target.pathname}${target.search}`,
+      method: req.method,
+      headers,
+    },
+    (proxyRes) => {
+      res.writeHead(proxyRes.statusCode ?? 502, proxyRes.headers)
+      proxyRes.pipe(res)
+    },
+  )
+
+  proxyReq.on('error', (err) => {
+    console.error('API proxy error:', err.message)
+    if (!res.headersSent) {
+      res.writeHead(502, { 'Content-Type': 'application/json; charset=utf-8' })
+      res.end(JSON.stringify({ error: 'Backend unreachable', detail: err.message }))
+    }
+  })
+
+  req.pipe(proxyReq)
+}
+
+if (!existsSync(join(ROOT, 'index.html'))) {
+  console.error(`FATAL: ${join(ROOT, 'index.html')} not found. Run "npm run build" before start.`)
+  process.exit(1)
+}
+
 createServer(async (req, res) => {
   try {
     const url = new URL(req.url ?? '/', `http://${req.headers.host}`)
+
+    if (url.pathname === '/health') {
+      res.writeHead(200, { 'Content-Type': 'text/plain; charset=utf-8' })
+      res.end('ok')
+      return
+    }
 
     if (url.pathname === '/config.js') {
       const base = apiBaseUrl()
@@ -62,12 +123,8 @@ createServer(async (req, res) => {
       return
     }
 
-    if (url.pathname.startsWith('/api/')) {
-      res.writeHead(502, { 'Content-Type': 'application/json; charset=utf-8' })
-      res.end(JSON.stringify({
-        error: 'API_BASE_URL is not configured on Admin Panel service',
-        hint: 'Set API_BASE_URL=https://your-backend.up.railway.app in Railway variables',
-      }))
+    if (url.pathname.startsWith('/api/') || url.pathname === '/api') {
+      proxyApi(req, res, url.pathname, url.search)
       return
     }
 
@@ -99,15 +156,17 @@ createServer(async (req, res) => {
 
     res.writeHead(200, { 'Content-Type': MIME[extname(file)] ?? 'application/octet-stream' })
     res.end(data)
-  } catch {
-    res.writeHead(500).end('Internal Server Error')
+  } catch (err) {
+    console.error('Request error:', err)
+    if (!res.headersSent) res.writeHead(500).end('Internal Server Error')
   }
-}).listen(PORT, () => {
+}).listen(PORT, HOST, () => {
   const base = apiBaseUrl()
-  console.log(`Listening on ${PORT}`)
+  console.log(`Listening on http://${HOST}:${PORT}`)
+  console.log(`Serving static files from ${ROOT}`)
   if (base) {
-    console.log(`API proxy target: ${base}/api`)
+    console.log(`API proxy target: ${base}`)
   } else {
-    console.warn('WARNING: API_BASE_URL is empty — admin panel cannot reach backend')
+    console.warn('WARNING: API_BASE_URL is empty — /api requests will return 502')
   }
 })
