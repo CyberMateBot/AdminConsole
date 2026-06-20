@@ -3,8 +3,8 @@ NIXPACKS_NODE_VERSION = "22"
 NIXPACKS_INSTALL_DEV_DEPS = "true"
 NIXPACKS_SPA_CADDY = "false"
 
+[phases.install]
+cmds = ["npm ci --no-audit --no-fund"]
+
 [phases.build]
 cmds = ["npm run build"]
-
-[start]
-cmd = "npm start"
