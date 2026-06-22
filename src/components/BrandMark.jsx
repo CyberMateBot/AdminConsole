@@ -3,7 +3,7 @@ export default function BrandMark({ className = '', size }) {
 
   return (
     <div className={`brand-mark${className ? ` ${className}` : ''}`} style={style}>
-      <img src="/favicon.svg" alt="" draggable="false" />
+      <img src="/brand-logo.png" alt="" draggable="false" />
     </div>
   )
 }
