@@ -2,6 +2,7 @@ import { useMemo, useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { usersApi } from '@/api/users'
 import UserTokensModal from '@/components/users/UserTokensModal'
+import UserSubscriptionModal from '@/components/users/UserSubscriptionModal'
 import { formatDate, formatUserName, getInitials } from '@/utils/user'
 
 export default function UsersPage() {
@@ -9,6 +10,7 @@ export default function UsersPage() {
   const [statusFilter, setStatusFilter] = useState('all')
   const [page, setPage] = useState(1)
   const [selectedUser, setSelectedUser] = useState(null)
+  const [subscriptionUser, setSubscriptionUser] = useState(null)
   const qc = useQueryClient()
 
   const { data, isLoading, isError } = useQuery({
@@ -21,6 +23,12 @@ export default function UsersPage() {
     mutationFn: ({ id, is_active }) => usersApi.toggleActive(id, is_active),
     onSuccess: () => qc.invalidateQueries({ queryKey: ['users'] }),
   })
+
+  const handleSubscriptionSuccess = (result) => {
+    const user = result.user ?? result
+    qc.invalidateQueries({ queryKey: ['users'] })
+    setSubscriptionUser(prev => (prev?.id === user.id ? { ...prev, ...user } : prev))
+  }
 
   const handleTokensSuccess = (result) => {
     const userId = result.user_id ?? result.id
@@ -77,18 +85,19 @@ export default function UsersPage() {
       <div className="table-wrap">
         <table className="admin-table">
           <colgroup>
-            <col style={{ width: '26%' }} />
-            <col style={{ width: '16%' }} />
+            <col style={{ width: '14%' }} />
+            <col style={{ width: '10%' }} />
+            <col style={{ width: '10%' }} />
             <col style={{ width: '12%' }} />
-            <col style={{ width: '12%' }} />
-            <col style={{ width: '16%' }} />
-            <col style={{ width: '18%' }} />
+            <col style={{ width: '14%' }} />
+            <col style={{ width: '20%' }} />
           </colgroup>
           <thead>
             <tr>
               <th>Пользователь</th>
               <th>Telegram ID</th>
               <th>Токены</th>
+              <th>Подписка</th>
               <th>Статус</th>
               <th>Регистрация</th>
               <th />
@@ -98,7 +107,7 @@ export default function UsersPage() {
             {isLoading
               ? Array.from({ length: 5 }).map((_, i) => (
                   <tr key={i}>
-                    {Array.from({ length: 6 }).map((_, j) => (
+                    {Array.from({ length: 7 }).map((_, j) => (
                       <td key={j}><div className="metric-skeleton" style={{ width: '80%' }} /></td>
                     ))}
                   </tr>
@@ -120,6 +129,12 @@ export default function UsersPage() {
                     <td className="mono">{user.telegram_id}</td>
                     <td className="tnum">{(user.tokens ?? 0).toLocaleString('ru')}</td>
                     <td>
+                      <div>{user.subscription_plan || user.subscription_plan_id || 'free'}</div>
+                      {typeof user.subscription_days_left === 'number' && user.subscription_days_left > 0 ? (
+                        <div className="uhandle">{user.subscription_days_left} дн.</div>
+                      ) : null}
+                    </td>
+                    <td>
                       <span className={`badge ${user.is_active ? 'badge-active' : 'badge-blocked'}`}>
                         {user.is_active ? 'Активен' : 'Заблокирован'}
                       </span>
@@ -129,6 +144,9 @@ export default function UsersPage() {
                       <div className="row-actions">
                         <button type="button" onClick={() => setSelectedUser(user)}>
                           Токены
+                        </button>
+                        <button type="button" onClick={() => setSubscriptionUser(user)}>
+                          Подписка
                         </button>
                         <button
                           type="button"
@@ -144,7 +162,7 @@ export default function UsersPage() {
                 ))
                 : (
                   <tr>
-                    <td colSpan={6} className="empty-state">
+                    <td colSpan={7} className="empty-state">
                       Пользователи не найдены
                     </td>
                   </tr>
@@ -167,6 +185,14 @@ export default function UsersPage() {
           user={selectedUser}
           onClose={() => setSelectedUser(null)}
           onSuccess={handleTokensSuccess}
+        />
+      )}
+
+      {subscriptionUser && (
+        <UserSubscriptionModal
+          user={subscriptionUser}
+          onClose={() => setSubscriptionUser(null)}
+          onSuccess={handleSubscriptionSuccess}
         />
       )}
     </div>
