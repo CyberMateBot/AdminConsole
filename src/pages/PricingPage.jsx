@@ -198,6 +198,10 @@ export default function PricingPage() {
     if (plansQuery.data?.data) {
       setPlans(plansQuery.data.data.map(plan => ({
         ...plan,
+        price_rub: Number(plan.price_rub ?? 0) || 0,
+        coins: Number(plan.coins ?? 0) || 0,
+        enabled: plan.enabled !== false,
+        popular: Boolean(plan.popular),
         features: Array.isArray(plan.features) && plan.features.length ? plan.features : [''],
         locked: plan.locked ?? [],
       })))
@@ -206,13 +210,21 @@ export default function PricingPage() {
 
   useEffect(() => {
     if (packsQuery.data?.data) {
-      setPacks(packsQuery.data.data)
+      setPacks(packsQuery.data.data.map(pack => ({
+        ...pack,
+        coins: Number(pack.coins ?? 0) || 0,
+        price_rub: Number(pack.price_rub ?? 0) || 0,
+        enabled: pack.enabled !== false,
+      })))
     }
   }, [packsQuery.data])
 
   const savePlans = useMutation({
     mutationFn: () => pricingApi.updatePlans(plans.map(plan => ({
       ...plan,
+      price_rub: Number(plan.price_rub ?? 0) || 0,
+      coins: Number(plan.coins ?? 0) || 0,
+      enabled: plan.enabled !== false,
       features: (plan.features ?? []).map(f => f.trim()).filter(Boolean),
       locked: (plan.locked ?? []).map(f => f.trim()).filter(Boolean),
     }))),
@@ -222,22 +234,67 @@ export default function PricingPage() {
       setError(null)
       window.setTimeout(() => setSaved(false), 2500)
     },
-    onError: () => setError('Не удалось сохранить планы подписки'),
+    onError: (err) => setError(err?.response?.data?.error || 'Не удалось сохранить планы подписки'),
+  })
+
+  const resetPlans = useMutation({
+    mutationFn: pricingApi.resetPlans,
+    onSuccess: (data) => {
+      if (data?.data) {
+        setPlans(data.data.map(plan => ({
+          ...plan,
+          price_rub: Number(plan.price_rub ?? 0) || 0,
+          coins: Number(plan.coins ?? 0) || 0,
+          enabled: plan.enabled !== false,
+          features: Array.isArray(plan.features) && plan.features.length ? plan.features : [''],
+          locked: plan.locked ?? [],
+        })))
+      }
+      qc.invalidateQueries({ queryKey: ['pricing-plans'] })
+      setSaved(true)
+      setError(null)
+      window.setTimeout(() => setSaved(false), 2500)
+    },
+    onError: (err) => setError(err?.response?.data?.error || 'Не удалось сбросить планы'),
   })
 
   const savePacks = useMutation({
-    mutationFn: () => pricingApi.updateCoinPacks(packs),
+    mutationFn: () => pricingApi.updateCoinPacks(packs.map(pack => ({
+      ...pack,
+      coins: Number(pack.coins ?? 0) || 0,
+      price_rub: Number(pack.price_rub ?? 0) || 0,
+      enabled: pack.enabled !== false,
+    }))),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['pricing-packs'] })
       setSaved(true)
       setError(null)
       window.setTimeout(() => setSaved(false), 2500)
     },
-    onError: () => setError('Не удалось сохранить пакеты монет'),
+    onError: (err) => setError(err?.response?.data?.error || 'Не удалось сохранить пакеты монет'),
+  })
+
+  const resetPacks = useMutation({
+    mutationFn: pricingApi.resetCoinPacks,
+    onSuccess: (data) => {
+      if (data?.data) {
+        setPacks(data.data.map(pack => ({
+          ...pack,
+          coins: Number(pack.coins ?? 0) || 0,
+          price_rub: Number(pack.price_rub ?? 0) || 0,
+          enabled: pack.enabled !== false,
+        })))
+      }
+      qc.invalidateQueries({ queryKey: ['pricing-packs'] })
+      setSaved(true)
+      setError(null)
+      window.setTimeout(() => setSaved(false), 2500)
+    },
+    onError: (err) => setError(err?.response?.data?.error || 'Не удалось сбросить пакеты'),
   })
 
   const isLoading = plansQuery.isLoading || packsQuery.isLoading
-  const isSaving = savePlans.isPending || savePacks.isPending
+  const isSaving = savePlans.isPending || savePacks.isPending || resetPlans.isPending || resetPacks.isPending
 
   return (
     <div className="page">
@@ -277,9 +334,14 @@ export default function PricingPage() {
             <button type="button" className="btn-ghost" disabled={isSaving} onClick={() => setPlans(prev => [...prev, emptyPlan(prev.length)])}>
               + Добавить план
             </button>
-            <button type="button" className="btn-primary" disabled={isSaving || !plans.length} onClick={() => savePlans.mutate()}>
-              {savePlans.isPending ? 'Сохранение…' : 'Сохранить планы'}
-            </button>
+            <div className="pricing-actions" style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
+              <button type="button" className="btn-ghost" disabled={isSaving} onClick={() => resetPlans.mutate()}>
+                {resetPlans.isPending ? 'Сброс…' : 'Восстановить актуальные планы'}
+              </button>
+              <button type="button" className="btn-primary" disabled={isSaving || !plans.length} onClick={() => savePlans.mutate()}>
+                {savePlans.isPending ? 'Сохранение…' : 'Сохранить планы'}
+              </button>
+            </div>
           </div>
         )}
       </div>
@@ -304,9 +366,14 @@ export default function PricingPage() {
             <button type="button" className="btn-ghost" disabled={isSaving} onClick={() => setPacks(prev => [...prev, emptyPack(prev.length)])}>
               + Добавить пакет
             </button>
-            <button type="button" className="btn-primary" disabled={isSaving || !packs.length} onClick={() => savePacks.mutate()}>
-              {savePacks.isPending ? 'Сохранение…' : 'Сохранить пакеты'}
-            </button>
+            <div className="pricing-actions" style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
+              <button type="button" className="btn-ghost" disabled={isSaving} onClick={() => resetPacks.mutate()}>
+                {resetPacks.isPending ? 'Сброс…' : 'Восстановить актуальные пакеты'}
+              </button>
+              <button type="button" className="btn-primary" disabled={isSaving || !packs.length} onClick={() => savePacks.mutate()}>
+                {savePacks.isPending ? 'Сохранение…' : 'Сохранить пакеты'}
+              </button>
+            </div>
           </div>
         )}
       </div>
