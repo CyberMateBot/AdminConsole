@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useNavigate, Navigate } from 'react-router-dom'
-import { Shield } from 'lucide-react'
+import BrandMark from '@/components/BrandMark'
 import { useAuth } from '@/hooks/useAuth'
 
 export default function LoginPage() {
@@ -33,9 +33,7 @@ export default function LoginPage() {
     <div className="login-page">
       <div className="login-card">
         <div className="login-logo">
-          <div className="mark">
-            <Shield size={18} strokeWidth={2.5} />
-          </div>
+          <BrandMark className="login-brand-mark" />
           <span>CyberMate Admin</span>
         </div>
         <p className="login-title">Вход в панель управления</p>

@@ -1,4 +1,5 @@
 import { NavLink } from 'react-router-dom'
+import BrandMark from '@/components/BrandMark'
 import {
   LayoutDashboard,
   Users,
@@ -8,7 +9,6 @@ import {
   LayoutGrid,
   Home,
   Settings,
-  Shield,
 } from 'lucide-react'
 
 const overviewNav = [
@@ -29,10 +29,7 @@ export default function Sidebar() {
   return (
     <aside className="sidebar">
       <div className="sidebar-logo">
-        <div className="mark">
-          <Shield size={14} strokeWidth={2.5} />
-          <span className="pulse-dot" />
-        </div>
+        <BrandMark className="sidebar-brand-mark" />
         <span className="label">CyberMate</span>
       </div>
 

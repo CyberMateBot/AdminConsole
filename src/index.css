@@ -164,18 +164,38 @@ body {
   gap: 10px;
 }
 
-.sidebar-logo .mark {
+.sidebar-logo .mark,
+.brand-mark {
   width: 26px;
   height: 26px;
   border-radius: 7px;
-  background: var(--logo-gradient);
+  overflow: hidden;
   display: flex;
   align-items: center;
   justify-content: center;
-  color: var(--logo-mark-fg);
   flex-shrink: 0;
   position: relative;
   box-shadow: 0 0 18px -2px rgba(124, 111, 255, 0.4);
+  background: var(--logo-gradient);
+}
+
+.brand-mark img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.sidebar-brand-mark {
+  width: 26px;
+  height: 26px;
+  border-radius: 7px;
+}
+
+.login-brand-mark {
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
 }
 
 .pulse-dot {
@@ -1009,15 +1029,24 @@ body {
   margin-bottom: 24px;
 }
 
-.login-logo .mark {
+.login-logo .mark,
+.login-logo .brand-mark {
   width: 32px;
   height: 32px;
   border-radius: 8px;
-  background: var(--logo-gradient);
+  overflow: hidden;
   display: flex;
   align-items: center;
   justify-content: center;
-  color: var(--logo-mark-fg);
+  background: var(--logo-gradient);
+  box-shadow: 0 0 18px -2px rgba(124, 111, 255, 0.35);
+}
+
+.login-logo .brand-mark img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
 }
 
 .login-logo span {
