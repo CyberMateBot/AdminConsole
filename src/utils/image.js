@@ -1,8 +1,15 @@
 const MAX_BYTES = 900_000
+const IMAGE_EXT_RE = /\.(png|jpe?g|webp|gif|avif|heic|heif|bmp|svg)$/i
 
 export function compressImageFile(file, { maxWidth = 1200, quality = 0.82 } = {}) {
   return new Promise((resolve, reject) => {
-    if (!file?.type?.startsWith('image/')) {
+    const declaredType = file?.type || ''
+    // Some browsers/OS report an empty or generic type (e.g. after a file was
+    // saved with a wrong/double extension like "image.png.bin") even though
+    // the bytes are a perfectly valid image — only reject up front when we're
+    // confident it's *not* an image (both the MIME type and the extension
+    // disagree). The actual decode below is the real source of truth.
+    if (!declaredType.startsWith('image/') && !IMAGE_EXT_RE.test(file?.name || '')) {
       reject(new Error('Выберите файл изображения'))
       return
     }
@@ -42,7 +49,7 @@ export function compressImageFile(file, { maxWidth = 1200, quality = 0.82 } = {}
 
     img.onerror = () => {
       URL.revokeObjectURL(objectUrl)
-      reject(new Error('Не удалось прочитать изображение'))
+      reject(new Error('Не удалось прочитать изображение. Файл повреждён или в формате, который не поддерживает браузер (например HEIC) — попробуйте пересохранить его в JPG/PNG/WebP.'))
     }
 
     img.src = objectUrl
