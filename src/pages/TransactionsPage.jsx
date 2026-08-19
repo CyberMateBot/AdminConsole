@@ -9,6 +9,20 @@ const TYPE_OPTIONS = [
   { value: 'debit', label: 'Списания' },
 ]
 
+function statusBadgeClass(status) {
+  switch (status) {
+    case 'pending':
+      return 'badge-pending'
+    case 'canceled':
+    case 'failed':
+      return 'badge-blocked'
+    case 'refunded':
+      return 'badge-pending'
+    default:
+      return 'badge-active'
+  }
+}
+
 export default function TransactionsPage() {
   const [typeFilter, setTypeFilter] = useState('all')
   const [page, setPage] = useState(1)
@@ -107,7 +121,7 @@ export default function TransactionsPage() {
                         <td><span className="method-badge">{tx.method_label}</span></td>
                         <td>{formatDate(tx.created_at)}</td>
                         <td>
-                          <span className="badge badge-active">{tx.status_label}</span>
+                          <span className={`badge ${statusBadgeClass(tx.status)}`}>{tx.status_label}</span>
                         </td>
                       </tr>
                     ))

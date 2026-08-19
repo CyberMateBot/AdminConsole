@@ -8,6 +8,7 @@ import {
   CreditCard,
   LayoutGrid,
   Home,
+  MessageSquare,
   Settings,
 } from 'lucide-react'
 
@@ -22,6 +23,7 @@ const manageNav = [
   { to: '/pricing', icon: CreditCard, label: 'Тарифы' },
   { to: '/models', icon: LayoutGrid, label: 'Нейросети' },
   { to: '/home-widgets', icon: Home, label: 'Виджеты' },
+  { to: '/feedback', icon: MessageSquare, label: 'Обратная связь' },
   { to: '/settings', icon: Settings, label: 'Настройки' },
 ]
 

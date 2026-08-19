@@ -9,6 +9,7 @@ import TransactionsPage from '@/pages/TransactionsPage'
 import ModelsPage from '@/pages/ModelsPage'
 import SettingsPage from '@/pages/SettingsPage'
 import HomeWidgetsPage from '@/pages/HomeWidgetsPage'
+import FeedbackPage from '@/pages/FeedbackPage'
 import PricingPage from '@/pages/PricingPage'
 import { useAuth } from '@/hooks/useAuth'
 
@@ -44,6 +45,7 @@ export default function App() {
             <Route path="transactions" element={<TransactionsPage />} />
             <Route path="models" element={<ModelsPage />} />
             <Route path="home-widgets" element={<HomeWidgetsPage />} />
+            <Route path="feedback" element={<FeedbackPage />} />
             <Route path="pricing" element={<PricingPage />} />
             <Route path="settings" element={<SettingsPage />} />
           </Route>
