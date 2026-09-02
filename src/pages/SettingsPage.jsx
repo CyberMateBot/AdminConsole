@@ -28,6 +28,7 @@ export default function SettingsPage() {
 
   const [registrationBonus, setRegistrationBonus] = useState(20)
   const [referralBonus, setReferralBonus] = useState(300)
+  const [referralRefereeBonus, setReferralRefereeBonus] = useState(30)
   const [tokenExpiryDays, setTokenExpiryDays] = useState(60)
   const [maintenance, setMaintenance] = useState(false)
   const [yookassa, setYookassa] = useState(true)
@@ -39,6 +40,7 @@ export default function SettingsPage() {
     if (!data) return
     setRegistrationBonus(data.registration_bonus ?? 20)
     setReferralBonus(data.referral_bonus ?? 300)
+    setReferralRefereeBonus(data.referral_referee_bonus ?? 30)
     setTokenExpiryDays(data.token_expiry_days ?? 60)
     setMaintenance(Boolean(data.maintenance_mode))
     setYookassa(data.yookassa_enabled ?? true)
@@ -59,6 +61,7 @@ export default function SettingsPage() {
     mutation.mutate({
       registration_bonus: Number(registrationBonus),
       referral_bonus: Number(referralBonus),
+      referral_referee_bonus: Number(referralRefereeBonus),
       token_expiry_days: Number(tokenExpiryDays),
       maintenance_mode: maintenance,
       yookassa_enabled: yookassa,
@@ -101,7 +104,7 @@ export default function SettingsPage() {
           <div className="setting-row">
             <div>
               <div className="setting-label">Бонус за реферала</div>
-              <div className="setting-sub">Монет при приглашении друга</div>
+              <div className="setting-sub">Монет пригласившему после первого действия друга (генерации)</div>
             </div>
             <div className="price-input">
               <input
@@ -110,6 +113,21 @@ export default function SettingsPage() {
                 value={referralBonus}
                 disabled={isLoading || mutation.isPending}
                 onChange={e => setReferralBonus(e.target.value)}
+              /> монет
+            </div>
+          </div>
+          <div className="setting-row">
+            <div>
+              <div className="setting-label">Бонус за переход по приглашению</div>
+              <div className="setting-sub">Дополнительные монеты новому пользователю, пришедшему по реферальной ссылке</div>
+            </div>
+            <div className="price-input">
+              <input
+                type="number"
+                className="admin-input"
+                value={referralRefereeBonus}
+                disabled={isLoading || mutation.isPending}
+                onChange={e => setReferralRefereeBonus(e.target.value)}
               /> монет
             </div>
           </div>
