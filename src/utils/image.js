@@ -14,6 +14,14 @@ export const WIDGET_FRAME_RATIO = 3 / 4
 // Decodes a File/Blob into an <img>, rejecting only when we're confident the
 // bytes aren't actually an image (some browsers/OS report an empty or wrong
 // MIME type even for valid images, so the real check is the decode itself).
+//
+// IMPORTANT: the resolved <img>'s `.src` is a blob: object URL that is kept
+// alive on purpose (not revoked here) — callers that display it (e.g. the
+// manual cropper) need it to stay valid for as long as it's rendered.
+// Revoking it right after decode (as this used to do) makes the *decoded*
+// Image element fine, but breaks any *other* <img> element later pointed at
+// the same URL, which silently renders blank with no error. Callers own
+// revoking it via `URL.revokeObjectURL(img.src)` once they're done with it.
 export function loadImage(file) {
   return new Promise((resolve, reject) => {
     const declaredType = file?.type || ''
@@ -26,7 +34,6 @@ export function loadImage(file) {
     const img = new Image()
 
     img.onload = () => {
-      URL.revokeObjectURL(objectUrl)
       resolve(img)
     }
 
@@ -102,8 +109,12 @@ export function cropRectToDataUrl(img, { srcX, srcY, srcW, srcH }, { maxWidth = 
 // cropper (e.g. non-widget uploads).
 export async function compressImageFile(file, { maxWidth = 1200, quality = 0.82, aspectRatio = WIDGET_FRAME_RATIO } = {}) {
   const img = await loadImage(file)
-  const rect = computeCoverRect(img.width, img.height, aspectRatio)
-  return cropRectToDataUrl(img, rect, { maxWidth, quality })
+  try {
+    const rect = computeCoverRect(img.width, img.height, aspectRatio)
+    return cropRectToDataUrl(img, rect, { maxWidth, quality })
+  } finally {
+    URL.revokeObjectURL(img.src)
+  }
 }
 
 // Re-downloads an already-set widget photo (a saved data: URL or an external

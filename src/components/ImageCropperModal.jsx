@@ -29,7 +29,13 @@ export default function ImageCropperModal({ file, aspectRatio = WIDGET_FRAME_RAT
     let cancelled = false
     loadImage(file)
       .then((loaded) => {
-        if (!cancelled) setImg(loaded)
+        if (cancelled) {
+          // Modal was closed/re-targeted before decode finished - nothing
+          // else will ever reference this blob URL, so release it now.
+          URL.revokeObjectURL(loaded.src)
+          return
+        }
+        setImg(loaded)
       })
       .catch((err) => {
         if (!cancelled) setError(err.message || 'Не удалось загрузить изображение')
@@ -38,6 +44,16 @@ export default function ImageCropperModal({ file, aspectRatio = WIDGET_FRAME_RAT
       cancelled = true
     }
   }, [file])
+
+  // Release the decoded image's blob URL once it's no longer shown (either
+  // a new file replaced it, or the modal unmounted).
+  useEffect(() => {
+    if (!img) return
+    const url = img.src
+    return () => {
+      URL.revokeObjectURL(url)
+    }
+  }, [img])
 
   // Measure the viewport box (fixed via CSS aspect-ratio) once it's laid out.
   useEffect(() => {
