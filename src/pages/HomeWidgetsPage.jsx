@@ -7,7 +7,8 @@ import {
   pickerPartsToRgba,
   rgbaToPickerParts,
 } from '@/utils/color'
-import { compressImageFile, refetchAndCompressImage } from '@/utils/image'
+import { refetchImageAsFile } from '@/utils/image'
+import ImageCropperModal from '@/components/ImageCropperModal'
 
 const emptyForm = {
   sort_order: 0,
@@ -109,20 +110,12 @@ function ImageUploadField({ value, onChange, disabled }) {
   const inputRef = useRef(null)
   const [uploading, setUploading] = useState(false)
   const [uploadError, setUploadError] = useState(null)
+  const [cropFile, setCropFile] = useState(null)
 
-  const handleFile = async (file) => {
+  const handleFile = (file) => {
     if (!file) return
-    setUploading(true)
     setUploadError(null)
-    try {
-      const dataUrl = await compressImageFile(file)
-      onChange(dataUrl)
-    } catch (err) {
-      setUploadError(err.message || 'Не удалось загрузить фото')
-    } finally {
-      setUploading(false)
-      if (inputRef.current) inputRef.current.value = ''
-    }
+    setCropFile(file)
   }
 
   const handleRefit = async () => {
@@ -130,13 +123,18 @@ function ImageUploadField({ value, onChange, disabled }) {
     setUploading(true)
     setUploadError(null)
     try {
-      const dataUrl = await refetchAndCompressImage(value)
-      onChange(dataUrl)
+      const file = await refetchImageAsFile(value)
+      setCropFile(file)
     } catch (err) {
       setUploadError(err.message || 'Не удалось переподогнать фото')
     } finally {
       setUploading(false)
     }
+  }
+
+  const closeCropper = () => {
+    setCropFile(null)
+    if (inputRef.current) inputRef.current.value = ''
   }
 
   const isDataUrl = value?.startsWith('data:image/')
@@ -154,9 +152,9 @@ function ImageUploadField({ value, onChange, disabled }) {
                 className="topbar-btn"
                 disabled={disabled || uploading}
                 onClick={handleRefit}
-                title="Скачать фото ещё раз и обрезать его под текущую рамку виджета (3:4)"
+                title="Открыть кадрирование для текущего фото и перевыбрать, что попадёт в рамку виджета (3:4)"
               >
-                {uploading ? 'Подгоняем…' : 'Переподогнать под виджет'}
+                {uploading ? 'Загрузка…' : 'Перекадрировать'}
               </button>
               <button
                 type="button"
@@ -205,17 +203,28 @@ function ImageUploadField({ value, onChange, disabled }) {
 
         {uploadError && <p className="login-error">{uploadError}</p>}
         <p className="field-hint">
-          Загруженное фото автоматически обрезается по центру и подгоняется под рамку карточки
-          виджета (вертикальная, примерно 3:4), поэтому предпросмотр слева — это то, что увидит
-          пользователь. Любые пропорции подойдут — не нужно кадрировать фото вручную, но лучше
-          всего смотрятся вертикальные или квадратные фото с главным объектом по центру. JPG/PNG/
-          WebP, итоговый размер до ~1&nbsp;МБ. Фото, указанные по прямой ссылке «URL», не
-          обрезаются автоматически. Если указано фото — оно используется вместо градиента.
-          Для фото, загруженных раньше (до этой обрезки) — нажмите «Переподогнать под виджет»
-          здесь или «Переподогнать фото» прямо в списке виджетов, чтобы применить актуальную
-          рамку без повторной загрузки файла с компьютера.
+          После выбора файла откроется окно кадрирования — перетащите фото и настройте зум,
+          чтобы выбрать, что именно попадёт в рамку карточки виджета (вертикальная, примерно 3:4);
+          предпросмотр слева — это то, что увидит пользователь. Особенно важно проверить кадр,
+          если на фото уже есть текст или логотип — автоматическая обрезка по центру может
+          случайно срезать часть надписи, поэтому лучше подогнать кадр вручную. JPG/PNG/WebP,
+          итоговый размер до ~1&nbsp;МБ. Фото, указанные по прямой ссылке «URL», не обрезаются
+          автоматически. Если указано фото — оно используется вместо градиента. Для фото,
+          загруженных раньше (до появления кадрирования) — нажмите «Перекадрировать» здесь или
+          «Переподогнать фото» прямо в списке виджетов.
         </p>
       </div>
+
+      {cropFile && (
+        <ImageCropperModal
+          file={cropFile}
+          onCancel={closeCropper}
+          onConfirm={(dataUrl) => {
+            onChange(dataUrl)
+            closeCropper()
+          }}
+        />
+      )}
     </div>
   )
 }
@@ -426,9 +435,9 @@ function WidgetRow({ widget, onEdit, onDelete, onRefit, deleting, refitting }) {
               className="save-link"
               disabled={refitting}
               onClick={() => onRefit(widget)}
-              title="Скачать фото ещё раз и обрезать его под текущую рамку виджета (3:4), без открытия формы"
+              title="Открыть фото в кадрировании и сохранить новый кадр под рамку виджета (3:4), без открытия формы"
             >
-              {refitting ? 'Подгоняем…' : 'Переподогнать фото'}
+              {refitting ? 'Загрузка…' : 'Переподогнать фото'}
             </button>
           </>
         ) : null}
@@ -453,6 +462,7 @@ export default function HomeWidgetsPage() {
   const [creating, setCreating] = useState(false)
   const [deletingId, setDeletingId] = useState(null)
   const [refittingId, setRefittingId] = useState(null)
+  const [refitTarget, setRefitTarget] = useState(null)
 
   const { data, isLoading, isError } = useQuery({
     queryKey: ['home-widgets'],
@@ -502,12 +512,25 @@ export default function HomeWidgetsPage() {
     setRefittingId(widget.id)
     setError(null)
     try {
-      const dataUrl = await refetchAndCompressImage(widget.image_url)
-      await updateMutation.mutateAsync({ id: widget.id, payload: { image_url: dataUrl } })
+      const file = await refetchImageAsFile(widget.image_url)
+      setRefitTarget({ widget, file })
     } catch (err) {
       setError(err.message || 'Не удалось переподогнать фото')
     } finally {
       setRefittingId(null)
+    }
+  }
+
+  const closeRefit = () => setRefitTarget(null)
+
+  const handleRefitConfirm = async (dataUrl) => {
+    const widget = refitTarget?.widget
+    closeRefit()
+    if (!widget) return
+    try {
+      await updateMutation.mutateAsync({ id: widget.id, payload: { image_url: dataUrl } })
+    } catch {
+      setError('Не удалось сохранить обрезанное фото')
     }
   }
 
@@ -620,6 +643,14 @@ export default function HomeWidgetsPage() {
           </div>
         )}
       </div>
+
+      {refitTarget && (
+        <ImageCropperModal
+          file={refitTarget.file}
+          onCancel={closeRefit}
+          onConfirm={handleRefitConfirm}
+        />
+      )}
     </div>
   )
 }

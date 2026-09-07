@@ -9,16 +9,14 @@ const IMAGE_EXT_RE = /\.(png|jpe?g|webp|gif|avif|heic|heif|bmp|svg)$/i
 // The card is a tall, narrow tile on the home screen (roughly 3:4, portrait)
 // rather than a landscape frame — it takes up ~64% of the row width but has
 // a fixed min-height of 332-400px, so it ends up taller than it is wide.
-const WIDGET_FRAME_RATIO = 3 / 4
+export const WIDGET_FRAME_RATIO = 3 / 4
 
-export function compressImageFile(file, { maxWidth = 1200, quality = 0.82, aspectRatio = WIDGET_FRAME_RATIO } = {}) {
+// Decodes a File/Blob into an <img>, rejecting only when we're confident the
+// bytes aren't actually an image (some browsers/OS report an empty or wrong
+// MIME type even for valid images, so the real check is the decode itself).
+export function loadImage(file) {
   return new Promise((resolve, reject) => {
     const declaredType = file?.type || ''
-    // Some browsers/OS report an empty or generic type (e.g. after a file was
-    // saved with a wrong/double extension like "image.png.bin") even though
-    // the bytes are a perfectly valid image — only reject up front when we're
-    // confident it's *not* an image (both the MIME type and the extension
-    // disagree). The actual decode below is the real source of truth.
     if (!declaredType.startsWith('image/') && !IMAGE_EXT_RE.test(file?.name || '')) {
       reject(new Error('Выберите файл изображения'))
       return
@@ -29,56 +27,7 @@ export function compressImageFile(file, { maxWidth = 1200, quality = 0.82, aspec
 
     img.onload = () => {
       URL.revokeObjectURL(objectUrl)
-
-      // Auto-fit: center-crop the source image to the widget frame's aspect
-      // ratio before resizing, so any photo (portrait, square, panorama...)
-      // automatically fills the widget card without unpredictable crops.
-      let srcX = 0
-      let srcY = 0
-      let srcW = img.width
-      let srcH = img.height
-      const srcRatio = srcW / srcH
-
-      if (aspectRatio && Number.isFinite(aspectRatio) && srcRatio !== aspectRatio) {
-        if (srcRatio > aspectRatio) {
-          // Wider than the frame — crop the sides.
-          const targetW = srcH * aspectRatio
-          srcX = (srcW - targetW) / 2
-          srcW = targetW
-        } else {
-          // Taller than the frame — crop top/bottom.
-          const targetH = srcW / aspectRatio
-          srcY = (srcH - targetH) / 2
-          srcH = targetH
-        }
-      }
-
-      const scale = srcW > maxWidth ? maxWidth / srcW : 1
-      const width = Math.max(1, Math.round(srcW * scale))
-      const height = Math.max(1, Math.round(srcH * scale))
-      const canvas = document.createElement('canvas')
-      canvas.width = width
-      canvas.height = height
-      const ctx = canvas.getContext('2d')
-      if (!ctx) {
-        reject(new Error('Не удалось обработать изображение'))
-        return
-      }
-      ctx.drawImage(img, srcX, srcY, srcW, srcH, 0, 0, width, height)
-
-      let q = quality
-      let dataUrl = canvas.toDataURL('image/jpeg', q)
-      while (dataUrl.length > MAX_BYTES && q > 0.45) {
-        q -= 0.08
-        dataUrl = canvas.toDataURL('image/jpeg', q)
-      }
-
-      if (dataUrl.length > MAX_BYTES) {
-        reject(new Error('Изображение слишком большое. Выберите файл меньше.'))
-        return
-      }
-
-      resolve(dataUrl)
+      resolve(img)
     }
 
     img.onerror = () => {
@@ -90,11 +39,79 @@ export function compressImageFile(file, { maxWidth = 1200, quality = 0.82, aspec
   })
 }
 
+// The default centered "cover" crop rect (in source-image pixels) for the
+// given target aspect ratio — the same framing compressImageFile used to
+// apply blindly. Used as the initial framing in the manual cropper so
+// well-behaved photos need zero adjustment.
+export function computeCoverRect(sourceWidth, sourceHeight, aspectRatio) {
+  let srcX = 0
+  let srcY = 0
+  let srcW = sourceWidth
+  let srcH = sourceHeight
+  const srcRatio = srcW / srcH
+
+  if (aspectRatio && Number.isFinite(aspectRatio) && srcRatio !== aspectRatio) {
+    if (srcRatio > aspectRatio) {
+      // Wider than the frame — crop the sides.
+      const targetW = srcH * aspectRatio
+      srcX = (srcW - targetW) / 2
+      srcW = targetW
+    } else {
+      // Taller than the frame — crop top/bottom.
+      const targetH = srcW / aspectRatio
+      srcY = (srcH - targetH) / 2
+      srcH = targetH
+    }
+  }
+
+  return { srcX, srcY, srcW, srcH }
+}
+
+// Draws the given source rect (image pixel coordinates) onto a canvas sized
+// to fit `maxWidth`, then encodes as JPEG, stepping quality down until the
+// result fits under MAX_BYTES.
+export function cropRectToDataUrl(img, { srcX, srcY, srcW, srcH }, { maxWidth = 1200, quality = 0.82 } = {}) {
+  const scale = srcW > maxWidth ? maxWidth / srcW : 1
+  const width = Math.max(1, Math.round(srcW * scale))
+  const height = Math.max(1, Math.round(srcH * scale))
+  const canvas = document.createElement('canvas')
+  canvas.width = width
+  canvas.height = height
+  const ctx = canvas.getContext('2d')
+  if (!ctx) {
+    throw new Error('Не удалось обработать изображение')
+  }
+  ctx.drawImage(img, srcX, srcY, srcW, srcH, 0, 0, width, height)
+
+  let q = quality
+  let dataUrl = canvas.toDataURL('image/jpeg', q)
+  while (dataUrl.length > MAX_BYTES && q > 0.45) {
+    q -= 0.08
+    dataUrl = canvas.toDataURL('image/jpeg', q)
+  }
+
+  if (dataUrl.length > MAX_BYTES) {
+    throw new Error('Изображение слишком большое. Выберите файл меньше.')
+  }
+
+  return dataUrl
+}
+
+// Convenience one-shot: decode + auto center-crop to the widget frame ratio
+// + compress. Used as a fallback when the caller doesn't need the manual
+// cropper (e.g. non-widget uploads).
+export async function compressImageFile(file, { maxWidth = 1200, quality = 0.82, aspectRatio = WIDGET_FRAME_RATIO } = {}) {
+  const img = await loadImage(file)
+  const rect = computeCoverRect(img.width, img.height, aspectRatio)
+  return cropRectToDataUrl(img, rect, { maxWidth, quality })
+}
+
 // Re-downloads an already-set widget photo (a saved data: URL or an external
-// http(s) link) and re-runs it through the same auto-crop/compress pipeline.
-// Lets admins fix photos that were uploaded before the crop ratio changed
-// (or before auto-cropping existed at all) without re-uploading from disk.
-export async function refetchAndCompressImage(url, options) {
+// http(s) link) so it can be re-opened in the manual cropper, or re-cropped
+// on its own. Lets admins fix photos that were uploaded before the crop
+// ratio changed (or before auto-cropping existed at all) without
+// re-uploading from disk.
+export async function refetchImageAsFile(url) {
   const trimmed = (url || '').trim()
   if (!trimmed) {
     throw new Error('Фото не задано')
@@ -111,8 +128,12 @@ export async function refetchAndCompressImage(url, options) {
   }
 
   const blob = await response.blob()
-  // Force an image/* type + a recognizable extension so compressImageFile's
-  // type check passes even if the server didn't send a useful Content-Type.
-  const file = new File([blob], 'refit.jpg', { type: blob.type || 'image/jpeg' })
+  // Force an image/* type + a recognizable extension so loadImage's type
+  // check passes even if the server didn't send a useful Content-Type.
+  return new File([blob], 'refit.jpg', { type: blob.type || 'image/jpeg' })
+}
+
+export async function refetchAndCompressImage(url, options) {
+  const file = await refetchImageAsFile(url)
   return compressImageFile(file, options)
 }
