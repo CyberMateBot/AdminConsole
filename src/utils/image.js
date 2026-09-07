@@ -89,3 +89,30 @@ export function compressImageFile(file, { maxWidth = 1200, quality = 0.82, aspec
     img.src = objectUrl
   })
 }
+
+// Re-downloads an already-set widget photo (a saved data: URL or an external
+// http(s) link) and re-runs it through the same auto-crop/compress pipeline.
+// Lets admins fix photos that were uploaded before the crop ratio changed
+// (or before auto-cropping existed at all) without re-uploading from disk.
+export async function refetchAndCompressImage(url, options) {
+  const trimmed = (url || '').trim()
+  if (!trimmed) {
+    throw new Error('Фото не задано')
+  }
+
+  let response
+  try {
+    response = await fetch(trimmed)
+  } catch {
+    throw new Error('Не удалось загрузить фото по ссылке (возможно, блокирует CORS)')
+  }
+  if (!response.ok) {
+    throw new Error('Не удалось загрузить фото по ссылке')
+  }
+
+  const blob = await response.blob()
+  // Force an image/* type + a recognizable extension so compressImageFile's
+  // type check passes even if the server didn't send a useful Content-Type.
+  const file = new File([blob], 'refit.jpg', { type: blob.type || 'image/jpeg' })
+  return compressImageFile(file, options)
+}

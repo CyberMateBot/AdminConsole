@@ -7,7 +7,7 @@ import {
   pickerPartsToRgba,
   rgbaToPickerParts,
 } from '@/utils/color'
-import { compressImageFile } from '@/utils/image'
+import { compressImageFile, refetchAndCompressImage } from '@/utils/image'
 
 const emptyForm = {
   sort_order: 0,
@@ -125,6 +125,20 @@ function ImageUploadField({ value, onChange, disabled }) {
     }
   }
 
+  const handleRefit = async () => {
+    if (!value) return
+    setUploading(true)
+    setUploadError(null)
+    try {
+      const dataUrl = await refetchAndCompressImage(value)
+      onChange(dataUrl)
+    } catch (err) {
+      setUploadError(err.message || 'Не удалось переподогнать фото')
+    } finally {
+      setUploading(false)
+    }
+  }
+
   const isDataUrl = value?.startsWith('data:image/')
 
   return (
@@ -134,14 +148,25 @@ function ImageUploadField({ value, onChange, disabled }) {
         {value ? (
           <div className="image-upload__preview-wrap">
             <img src={value} alt="" className="image-upload__preview" />
-            <button
-              type="button"
-              className="topbar-btn image-upload__clear"
-              disabled={disabled || uploading}
-              onClick={() => onChange('')}
-            >
-              Удалить
-            </button>
+            <div className="image-upload__preview-actions">
+              <button
+                type="button"
+                className="topbar-btn"
+                disabled={disabled || uploading}
+                onClick={handleRefit}
+                title="Скачать фото ещё раз и обрезать его под текущую рамку виджета (3:4)"
+              >
+                {uploading ? 'Подгоняем…' : 'Переподогнать под виджет'}
+              </button>
+              <button
+                type="button"
+                className="topbar-btn image-upload__clear"
+                disabled={disabled || uploading}
+                onClick={() => onChange('')}
+              >
+                Удалить
+              </button>
+            </div>
           </div>
         ) : (
           <div className="image-upload__placeholder">Фото не выбрано</div>
@@ -186,6 +211,9 @@ function ImageUploadField({ value, onChange, disabled }) {
           всего смотрятся вертикальные или квадратные фото с главным объектом по центру. JPG/PNG/
           WebP, итоговый размер до ~1&nbsp;МБ. Фото, указанные по прямой ссылке «URL», не
           обрезаются автоматически. Если указано фото — оно используется вместо градиента.
+          Для фото, загруженных раньше (до этой обрезки) — нажмите «Переподогнать под виджет»
+          здесь или «Переподогнать фото» прямо в списке виджетов, чтобы применить актуальную
+          рамку без повторной загрузки файла с компьютера.
         </p>
       </div>
     </div>
@@ -362,7 +390,7 @@ function WidgetForm({ title, initial, submitLabel, onSubmit, onCancel, saving })
   )
 }
 
-function WidgetRow({ widget, onEdit, onDelete, deleting }) {
+function WidgetRow({ widget, onEdit, onDelete, onRefit, deleting, refitting }) {
   return (
     <tr>
       <td>{widget.sort_order}</td>
@@ -390,6 +418,20 @@ function WidgetRow({ widget, onEdit, onDelete, deleting }) {
         <button type="button" className="save-link" onClick={() => onEdit(widget)}>
           Изменить
         </button>
+        {widget.image_url ? (
+          <>
+            {' · '}
+            <button
+              type="button"
+              className="save-link"
+              disabled={refitting}
+              onClick={() => onRefit(widget)}
+              title="Скачать фото ещё раз и обрезать его под текущую рамку виджета (3:4), без открытия формы"
+            >
+              {refitting ? 'Подгоняем…' : 'Переподогнать фото'}
+            </button>
+          </>
+        ) : null}
         {' · '}
         <button
           type="button"
@@ -410,6 +452,7 @@ export default function HomeWidgetsPage() {
   const [editing, setEditing] = useState(null)
   const [creating, setCreating] = useState(false)
   const [deletingId, setDeletingId] = useState(null)
+  const [refittingId, setRefittingId] = useState(null)
 
   const { data, isLoading, isError } = useQuery({
     queryKey: ['home-widgets'],
@@ -453,6 +496,20 @@ export default function HomeWidgetsPage() {
     onError: () => setError('Не удалось удалить виджет'),
     onSettled: () => setDeletingId(null),
   })
+
+  const handleRefit = async (widget) => {
+    if (!widget.image_url) return
+    setRefittingId(widget.id)
+    setError(null)
+    try {
+      const dataUrl = await refetchAndCompressImage(widget.image_url)
+      await updateMutation.mutateAsync({ id: widget.id, payload: { image_url: dataUrl } })
+    } catch (err) {
+      setError(err.message || 'Не удалось переподогнать фото')
+    } finally {
+      setRefittingId(null)
+    }
+  }
 
   return (
     <div className="page">
@@ -544,6 +601,7 @@ export default function HomeWidgetsPage() {
                       key={widget.id}
                       widget={widget}
                       deleting={deletingId === widget.id}
+                      refitting={refittingId === widget.id}
                       onEdit={(item) => {
                         setEditing(item)
                         setCreating(false)
@@ -553,6 +611,7 @@ export default function HomeWidgetsPage() {
                           deleteMutation.mutate(id)
                         }
                       }}
+                      onRefit={handleRefit}
                     />
                   ))
                 )}
