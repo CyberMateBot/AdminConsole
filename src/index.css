@@ -1357,7 +1357,7 @@ body {
 
 .image-upload__preview {
   width: 160px;
-  height: 96px;
+  height: 120px;
   object-fit: cover;
   border-radius: var(--radius-sm);
   border: 1px solid var(--border);

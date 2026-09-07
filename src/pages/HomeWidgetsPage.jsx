@@ -180,9 +180,10 @@ function ImageUploadField({ value, onChange, disabled }) {
 
         {uploadError && <p className="login-error">{uploadError}</p>}
         <p className="field-hint">
-          Рекомендуемый размер — 1200×900&nbsp;px (соотношение сторон 4:3), JPG/PNG/WebP до ~1 МБ.
-          Картинка растягивается на всю карточку виджета — если пропорции другие, края будут обрезаны.
-          Не используйте квадратные логотипы/иконки: на широкой карточке они получаются обрезанными и «размытыми».
+          Загруженное фото автоматически обрезается по центру и подгоняется под рамку карточки
+          виджета (4:3), поэтому предпросмотр слева — это то, что увидит пользователь. Любые
+          пропорции подойдут — не нужно кадрировать фото вручную. JPG/PNG/WebP, итоговый размер
+          до ~1&nbsp;МБ. Фото, указанные по прямой ссылке «URL», не обрезаются автоматически.
           Если указано фото — оно используется вместо градиента.
         </p>
       </div>
@@ -238,7 +239,7 @@ function WidgetForm({ title, initial, submitLabel, onSubmit, onCancel, saving })
           </div>
 
           <div className="field-group">
-            <label className="field-label" htmlFor="widget-tag-preset">Тег</label>
+            <label className="field-label" htmlFor="widget-tag-preset">Тег (необязательно)</label>
             <select
               id="widget-tag-preset"
               className="admin-select"
@@ -291,11 +292,10 @@ function WidgetForm({ title, initial, submitLabel, onSubmit, onCancel, saving })
         </div>
 
         <div className="field-group">
-          <label className="field-label" htmlFor="widget-title">Заголовок</label>
+          <label className="field-label" htmlFor="widget-title">Заголовок (необязательно)</label>
           <input
             id="widget-title"
             className="admin-input"
-            required
             value={form.title}
             onChange={(e) => setField('title', e.target.value)}
           />
@@ -366,7 +366,7 @@ function WidgetRow({ widget, onEdit, onDelete, deleting }) {
     <tr>
       <td>{widget.sort_order}</td>
       <td>
-        <strong>{widget.title}</strong>
+        <strong>{widget.title || '—'}</strong>
         {widget.tag_text ? (
           <div className="table-sub">
             <TagPreview
