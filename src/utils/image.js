@@ -5,7 +5,11 @@ const IMAGE_EXT_RE = /\.(png|jpe?g|webp|gif|avif|heic|heif|bmp|svg)$/i
 // this ratio there via `object-fit: cover`). Cropping to the same ratio here
 // means the photo you see in the admin preview is exactly what shows up in
 // the app — no surprise cropping of the subject at display time.
-const WIDGET_FRAME_RATIO = 4 / 3
+//
+// The card is a tall, narrow tile on the home screen (roughly 3:4, portrait)
+// rather than a landscape frame — it takes up ~64% of the row width but has
+// a fixed min-height of 332-400px, so it ends up taller than it is wide.
+const WIDGET_FRAME_RATIO = 3 / 4
 
 export function compressImageFile(file, { maxWidth = 1200, quality = 0.82, aspectRatio = WIDGET_FRAME_RATIO } = {}) {
   return new Promise((resolve, reject) => {
