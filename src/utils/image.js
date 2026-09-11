@@ -1,15 +1,11 @@
 const MAX_BYTES = 900_000
 const IMAGE_EXT_RE = /\.(png|jpe?g|webp|gif|avif|heic|heif|bmp|svg)$/i
 
-// Matches the widget card's frame in the app (the card is stretched to fill
-// this ratio there via `object-fit: cover`). Cropping to the same ratio here
-// means the photo you see in the admin preview is exactly what shows up in
-// the app — no surprise cropping of the subject at display time.
-//
-// The card is a tall, narrow tile on the home screen (roughly 3:4, portrait)
-// rather than a landscape frame — it takes up ~64% of the row width but has
-// a fixed min-height of 332-400px, so it ends up taller than it is wide.
-export const WIDGET_FRAME_RATIO = 3 / 4
+// Matches the home widget card on a typical phone (~187×360 CSS px).
+// Cropping to this ratio means the admin preview is what shows in the app.
+export const WIDGET_FRAME_RATIO = 187 / 360
+export const WIDGET_IMAGE_WIDTH = 560
+export const WIDGET_IMAGE_HEIGHT = 1080
 
 // Decodes a File/Blob into an <img>, rejecting only when we're confident the
 // bytes aren't actually an image (some browsers/OS report an empty or wrong
@@ -77,7 +73,7 @@ export function computeCoverRect(sourceWidth, sourceHeight, aspectRatio) {
 // Draws the given source rect (image pixel coordinates) onto a canvas sized
 // to fit `maxWidth`, then encodes as JPEG, stepping quality down until the
 // result fits under MAX_BYTES.
-export function cropRectToDataUrl(img, { srcX, srcY, srcW, srcH }, { maxWidth = 1200, quality = 0.82 } = {}) {
+export function cropRectToDataUrl(img, { srcX, srcY, srcW, srcH }, { maxWidth = WIDGET_IMAGE_WIDTH, quality = 0.82 } = {}) {
   const scale = srcW > maxWidth ? maxWidth / srcW : 1
   const width = Math.max(1, Math.round(srcW * scale))
   const height = Math.max(1, Math.round(srcH * scale))
@@ -107,7 +103,7 @@ export function cropRectToDataUrl(img, { srcX, srcY, srcW, srcH }, { maxWidth = 
 // Convenience one-shot: decode + auto center-crop to the widget frame ratio
 // + compress. Used as a fallback when the caller doesn't need the manual
 // cropper (e.g. non-widget uploads).
-export async function compressImageFile(file, { maxWidth = 1200, quality = 0.82, aspectRatio = WIDGET_FRAME_RATIO } = {}) {
+export async function compressImageFile(file, { maxWidth = WIDGET_IMAGE_WIDTH, quality = 0.82, aspectRatio = WIDGET_FRAME_RATIO } = {}) {
   const img = await loadImage(file)
   try {
     const rect = computeCoverRect(img.width, img.height, aspectRatio)

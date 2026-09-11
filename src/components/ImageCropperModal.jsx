@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { X, ZoomIn, ZoomOut } from 'lucide-react'
-import { cropRectToDataUrl, loadImage, WIDGET_FRAME_RATIO } from '@/utils/image'
+import { cropRectToDataUrl, loadImage, WIDGET_FRAME_RATIO, WIDGET_IMAGE_WIDTH } from '@/utils/image'
 
 const MAX_ZOOM_MULTIPLIER = 3
 
@@ -157,7 +157,7 @@ export default function ImageCropperModal({ file, aspectRatio = WIDGET_FRAME_RAT
       const srcY = clamp(-pos.y / scale, 0, img.height)
       const srcW = Math.min(viewportSize.w / scale, img.width - srcX)
       const srcH = Math.min(viewportSize.h / scale, img.height - srcY)
-      const dataUrl = cropRectToDataUrl(img, { srcX, srcY, srcW, srcH }, { maxWidth: 1200, quality: 0.82 })
+      const dataUrl = cropRectToDataUrl(img, { srcX, srcY, srcW, srcH }, { maxWidth: WIDGET_IMAGE_WIDTH, quality: 0.82 })
       onConfirm(dataUrl)
     } catch (err) {
       setError(err.message || 'Не удалось обрезать изображение')
@@ -174,7 +174,7 @@ export default function ImageCropperModal({ file, aspectRatio = WIDGET_FRAME_RAT
           <div>
             <h3 className="modal-title">Кадрирование фото</h3>
             <p className="modal-sub">
-              Перетащите фото и используйте зум, чтобы выбрать, что попадёт в рамку виджета (3:4)
+              Перетащите фото и используйте зум, чтобы выбрать, что попадёт в рамку виджета (8:15, 187×360)
             </p>
           </div>
           <button type="button" className="modal-close" onClick={onCancel} aria-label="Закрыть">
